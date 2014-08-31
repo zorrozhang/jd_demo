@@ -376,6 +376,7 @@ showSearchView = (bottomView, clickButton) ->
 	backButton = addBackButton(bottomView, clickButton, searchView)
 	backButton.x = 520
 	backButton.width = 120
+	addSearchContentButton(searchView)
 	return searchView
 
 #显示主界面按钮
@@ -471,7 +472,7 @@ showWishListFocusView = (bottomView, clickButton) ->
 	wishListFocusView.image = "images/jingdong/detailpage/wish_list_focus.png"
 	changePageAnimation(bottomView, clickButton, wishListFocusView)
 	addJDDetailHeader(bottomView, clickButton, wishListFocusView)
-	return wishListView
+	return wishListFocusView
 
 #显示个人中心按钮
 addUserCenterButton = (topView) ->
@@ -534,15 +535,17 @@ showJDDetailPageView = (bottomView, clickButton) ->
 	changePageAnimation(bottomView, clickButton, jdDetailPageView)
 	addJDDetailHeader(bottomView, clickButton, jdDetailPageView)
 	addBuyButton(jdDetailPageView)
+	addAddToShopCardButton(jdDetailPageView)
+	addSatisfyWishButton(jdDetailPageView)
 	return jdDetailPageView
 	
 #增加购买的按钮
 addBuyButton = (topView) ->
 	buyButton = new Layer 
-			x : 10
-			y : 1136 - 98
-			width : 220
-			height : 98
+			x : 12
+			y : 1136 - 88
+			width : 210
+			height : 78
 	topView.addSubLayer buyButton
 	buyButton.on Events.Click, ->
 		showProductSKUView(topView, buyButton)
@@ -554,6 +557,7 @@ showProductSKUView = (bottomView, clickButton) ->
 	productSkuView.image = "images/jingdong/detailpage/product_sku.png"
 	changePageAnimation(bottomView, clickButton, productSkuView)
 	addJDDetailHeader(bottomView, clickButton, productSkuView)
+	addConfirmButton(productSkuView)
 	return productSkuView;
 	
 #增加确认按钮
@@ -573,8 +577,19 @@ showPayView = (bottomView, clickButton) ->
 	payView  = generateNormalLayer()
 	payView.image = "images/jingdong/detailpage/product_pay.jpg"
 	changePageAnimation(bottomView, clickButton, payView)
-	addBackButton(bottomView, clickButton, payView)
+	addJDDetailHeader(bottomView, clickButton, payView)
 	return payView
+	
+#加入购物车按钮
+addAddToShopCardButton = (topView) ->
+	addToShopCardButton = new Layer 
+		x : 230
+		y : 1136 - 88
+		width : 200
+		height : 78
+	topView.addSubLayer addToShopCardButton
+	addToShopCardButton.on Events.Click, ->
+		showShopCardView(topView, addToShopCardButton)
 
 #显示第一次的引导页面
 showFirstSnapshotView = (bottomView, clickButton) ->
@@ -592,6 +607,46 @@ showFirstSnapshotView = (bottomView, clickButton) ->
 	addJDDetailHeader(bottomView, clickButton, firstSnapshotView)
 	return firstSnapshotView;
 
+#增加满足心愿按钮
+addSatisfyWishButton = (topView) ->
+	satisfyWishButton = new Layer
+		x : 410
+		y : 140
+		width : 220
+		height : 70
+	topView.addSubLayer satisfyWishButton
+	satisfyWishButton.on Events.Click, ->
+		showSatisfyWishView(topView, satisfyWishButton)
+	return satisfyWishButton
+
+#满足心愿页面
+showSatisfyWishView = (bottomView, clickButton) ->
+	satisfyWishView = generateNormalLayer()
+	satisfyWishView.image = "images/jingdong/detailpage/satisfy_wish.png"
+	changePageAnimation(bottomView, clickButton, satisfyWishView)
+	addJDDetailHeader(bottomView, clickButton, satisfyWishView)
+	return satisfyWishView;
+
+#展示搜索内容
+addSearchContentButton = (topView) ->
+	searchContentButton = new Layer
+		x : 20
+		y : 42
+		width : 490
+		height : 88
+	topView.addSubLayer searchContentButton
+	searchContentButton.on Events.Click, ->
+		showSearchContentView(topView, searchContentButton)
+
+#搜索内容页面
+showSearchContentView = (bottomView, clickButton) ->
+	searchContentView = generateNormalLayer()
+	searchContentView.image = "images/jingdong/detailpage/search_content.png"
+	changePageAnimation(bottomView, clickButton, searchContentView)
+	backButton = addBackButton(bottomView, clickButton, searchContentView)
+	backButton.x = 520
+	backButton.width = 120
+	return searchContentView;
 	
 
 # add jingdong detail header
@@ -685,9 +740,9 @@ fourTab = generateFullScreenLayer("images/gray_background.jpg", 		"images/morevi
 null,
 910)
 
-showMainFrameTabView()
-#showFindFriendTabView()å
-# thirdTab.name = null
-# pushJingdongHomepage()
+# showMainFrameTabView()
+#showFindFriendTabView()
+thirdTab.name = null
+pushJingdongHomepage()
 
 
