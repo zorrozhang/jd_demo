@@ -22,11 +22,7 @@ generateNormalLayer = () ->
 
 generateDragableFullScreenLayer  = (background, topbar, content, bottom, logo, contentHeight) ->
 
-	containerLayer = new Layer
-		x : 0
-		y : 0
-		width : 640
-		height : 1136
+	containerLayer = generateNormalLayer()
 	containerLayer.image = background
 	containerLayer.scrollVertical = true
 	
@@ -137,11 +133,7 @@ generateDragableFullScreenLayer  = (background, topbar, content, bottom, logo, c
 	return containerLayer
 
 generateScrollableFullScreenLayerImpl = (background, topbar, content, bottom, logo, contentHeight, needTabbar) ->
-	containerLayer = new Layer
-		x : 0
-		y : 0
-		width : 640
-		height : 1136
+	containerLayer = generateNormalLayer()
 	
 	containerLayer.image = background
 		
@@ -233,6 +225,7 @@ generateFullScreenLayer = (background, topbar, content, bottom, logo, contentHei
 		
 showMainFrameTabView = () ->
 	firstTab.visible = true
+	firstTab.bringToFront()
 	secondTab.visible = false
 	thirdTab.visible = false
 	fourTab.visible = false
@@ -240,6 +233,7 @@ showMainFrameTabView = () ->
 showContactTabView = () ->
 	firstTab.visible = false
 	secondTab.visible = true
+	secondTab.bringToFront()
 	thirdTab.visible = false
 	fourTab.visible = false
 
@@ -247,6 +241,7 @@ showFindFriendTabView = () ->
 	firstTab.visible = false
 	secondTab.visible = false
 	thirdTab.visible = true
+	thirdTab.bringToFront()
 	fourTab.visible = false
 	
 showMoreTabView = () ->
@@ -254,6 +249,7 @@ showMoreTabView = () ->
 	secondTab.visible = false
 	thirdTab.visible = false
 	fourTab.visible = true
+	fourTab.bringToFront()
 	
 pushViewController = (bottomView, clickCell, topView) ->
 	if clickCell != null
@@ -281,18 +277,16 @@ pushViewController = (bottomView, clickCell, topView) ->
 	time: 0.5
 	delay: 0.1
 
+
 addBackButton = (bottomView, clickCell, topView) ->
 	backButton = new Layer
 		x : 0
 		y : 40
 		width : 140
 		height : 88
-# 	backButton.backgroundColor = null
 	topView.addSubLayer backButton
 	
 	backButton.on Events.Click, ->
-# 		clickCell.backgroundColor = null
-# 		clickCell.opacity = 1.0
 		
 		topView.animate
 			properties:
@@ -312,205 +306,350 @@ addBackButton = (bottomView, clickCell, topView) ->
 	topView.on Events.AnimationEnd, ->
 		if topView.x == 640
 			topView.visible = false
-	
-addJingdongDetailButton = (bottomView) ->
-	detailButton = new Layer
-		x : 0
-		y : 380
-		width : 320
-		height : 415
-# 	detailButton.backgroundColor = null
-	bottomView.addSubLayer detailButton
-	
-	detailButton.on Events.Click, ->
-		detailView = generateScrollableFullScreenLayerImpl("images/gray_background.jpg", 
-			    "images/jingdong/detailpage/product_topbar.jpg",
-				"images/jingdong/detailpage/product_content.jpg",
-				"images/jingdong/detailpage/product_bottombar.jpg", null, 1531, false)
-		pushViewController(bottomView, null, detailView)
-		
-		buyButton = new Layer 
-			x : 10
-			y : 1136 - 98
-			width : 220
-			height : 98
-		buyButton.background = null
-		detailView.addSubLayer buyButton
-		
-		buyButton.on Events.Click, ->
-			productSku = generateNormalLayer()
-			productSku.image = "images/jingdong/detailpage/product_sku.png"
-			pushViewController(detailView, null, productSku)
-			
-			confirmButton = new Layer
-				x : 160
-				y : 1136 - 120
-				width : 350
-				height : 84
-			productSku.addSubLayer confirmButton
-			
-			confirmButton.on Events.Click, ->
-				payView  = generateNormalLayer()
-				payView.image = "images/jingdong/detailpage/product_pay.jpg"
-				pushViewController(detailView, null, payView)
-				
-				detailView.x = 0
-				productSku.on Events.AnimationEnd, ->
-					if productSku.x < 0
-						productSku.x = -640
-						productSku.visible = false
-						
-	centerBarButton = new Layer
+	return backButton
+
+##京东导航栏的布局
+addCenterDropListButton = (topView) ->
+	centerDropListButton = new Layer
 		x : 260
 		y : 40
 		width : 150
 		height : 88
-	bottomView.addSubLayer centerBarButton
-	centerBarButton.on Events.Click, ->
-		centerDownList(bottomView)
+	topView.addSubLayer centerDropListButton
+	centerDropListButton.on Events.Click, ->
+		showCenterDropListView(topView, centerDropListButton)
+	return centerDropListButton
 
-centerDownList = (bottomView) ->
-		centerBarClickView = generateNormalLayer();
-		centerBarClickView.image  = "images/jingdong/detailpage/click_center_bar.png"
-		pushViewController(bottomView, null, centerBarClickView)
+#显示中间下拉列表
+showCenterDropListView = (bottomView, clickButton) ->
+	centerDropListView = generateNormalLayer();
+	centerDropListView.image  = "images/jingdong/detailpage/click_center_bar.png"
+	changePageAnimation(bottomView, clickButton, centerDropListView)
+	addBackButton(bottomView, clickButton, centerDropListView)
+	addShopCardButton(centerDropListView)
+	addSearchButton(centerDropListView)
+	addJDHomePageButton(centerDropListView)
+	addClassifyButton(centerDropListView)
+	addWishListButton(centerDropListView)
+	addUserCenterButton(centerDropListView)
+	addAllOrderButton(centerDropListView)
+	return centerDropListView
+
+# 增加购物车的按钮
+addShopCardButton = (topView) ->
+	shopCardButton = new Layer
+		x : 555
+		y : 40
+		width : 60
+		height : 88
+	topView.addSubLayer shopCardButton
+	shopCardButton.on Events.Click, ->
+		showShopCardView(topView, shopCardButton)
+	return shopCardButton
+
+#显示购物车页面
+showShopCardView = (bottomView, clickButton) ->
+	shopCardView = generateNormalLayer()
+	shopCardView.image = "images/jingdong/detailpage/shopcard.png"
+	changePageAnimation(bottomView, clickButton, shopCardView)
+	addBackButton(bottomView, clickButton, shopCardView)
+	addSearchButton(shopCardView)
+	return showShopCardView
+
+#增加搜索的按钮
+addSearchButton = (topView) ->
+	searchButton = new Layer
+		x : 468
+		y : 40
+		width : 60
+		height : 88
+	topView.addSubLayer searchButton
+	searchButton.on Events.Click, ->
+		showSearchView(topView, searchButton)
+	return searchButton
+
+#显示搜索页面
+showSearchView = (bottomView, clickButton) ->
+	searchView = generateNormalLayer()
+	searchView.image = "images/jingdong/detailpage/search_homepage.png"
+	changePageAnimation(bottomView, clickButton, searchView)
+	backButton = addBackButton(bottomView, clickButton, searchView)
+	backButton.x = 520
+	backButton.width = 120
+	return searchView
+
+#显示主界面按钮
+addJDHomePageButton = (topView) ->
+	jdHomePageButton = new Layer
+		x : 250
+		y : 150
+		width : 150
+		height : 55
+	topView.addSubLayer jdHomePageButton
+	jdHomePageButton.on Events.Click, ->
+		showJDHomePageView(topView, jdHomePageButton)
+	return jdHomePageButton
 		
-		classifyButton = new Layer
-			x : 250
-			y : 223
-			width : 150
-			height : 55
-		centerBarClickView.addSubLayer classifyButton
-		classifyButton.on Events.Click, ->
-			classifyHomePageView = generateNormalLayer()
-			classifyHomePageView.image = "images/jingdong/detailpage/classify_page.png"
-			pushViewController(centerBarClickView, null, classifyHomePageView)
-		
-		wishListButton = new Layer
-			x : 250
-			y : 298
-			width : 150
-			height : 55
-		centerBarClickView.addSubLayer wishListButton
-		wishListButton.on Events.Click, ->
-			wishList(centerBarClickView)
-		
-		userCenterButton = new Layer
+#显示主页
+showJDHomePageView = (bottomView, clickButton) ->
+	jdHomePageView = generateScrollableFullScreenLayer("images/gray_background.jpg",
+			    "images/jingdong/homepage/homepage_topbar.png",
+				"images/jingdong/homepage/homepage_content.png",
+				null, null, 1932)
+	changePageAnimation(bottomView, clickButton, jdHomePageView)
+	backButton = new Layer
+		x : 0
+		y : 40
+		width : 140
+		height : 88
+	jdHomePageView.addSubLayer backButton
+	backButton.on Events.Click, ->
+		changePageAnimationL2R(jdHomePageView, clickButton, thirdTab)
+	addCenterDropListButton(jdHomePageView)
+	addSearchButton(jdHomePageView)
+	addShopCardButton(jdHomePageView)
+	addJDDetailPageButton(jdHomePageView)
+	return showJDHomePageView
+
+
+#分类导航的Button
+addClassifyButton = (topView) ->
+	classifyButton = new Layer
+		x : 250
+		y : 223
+		width : 150
+		height : 55
+	topView.addSubLayer classifyButton
+	classifyButton.on Events.Click, ->
+		showClassifyHomePageView(topView, classifyButton)
+	return classifyButton
+
+#显示分类主界面
+showClassifyHomePageView = (bottomView, clickButton) ->
+	classifyHomePageView = generateNormalLayer()
+	classifyHomePageView.image = "images/jingdong/detailpage/classify_page.png"
+	changePageAnimation(bottomView, clickButton, classifyHomePageView)
+	addJDDetailHeader(bottomView, clickButton, classifyHomePageView)
+	return classifyHomePageView
+
+#显示心愿单的按钮
+addWishListButton = (topView) -> 
+	wishListButton = new Layer
+		x : 250
+		y : 298
+		width : 150
+		height : 55
+	topView.addSubLayer wishListButton
+	wishListButton.on Events.Click, ->
+		showWishListView(topView, wishListButton)
+	return wishListButton
+
+#显示心愿列表
+showWishListView = (bottomView, clickButton) ->
+	wishListView = generateNormalLayer()
+	wishListView.image = "images/jingdong/detailpage/wish_list.png"
+	changePageAnimation(bottomView, clickButton, wishListView)
+	addJDDetailHeader(bottomView, clickButton, wishListView)
+	addWishListFocusButton(wishListView)
+	return wishListView
+	
+#显示关注心愿列表按钮
+addWishListFocusButton = (topView) ->
+	wishListFocusButton = new Layer
+		x : 0
+		y : 373
+		width : 640
+		height : 79
+	topView.addSubLayer wishListFocusButton
+	wishListFocusButton.on Events.Click, ->
+		showWishListFocusView(topView)
+	return wishListFocusButton
+
+#显示关注心愿列表
+showWishListFocusView = (bottomView, clickButton) ->
+	wishListFocusView = generateNormalLayer()
+	wishListFocusView.image = "images/jingdong/detailpage/wish_list_focus.png"
+	changePageAnimation(bottomView, clickButton, wishListFocusView)
+	addJDDetailHeader(bottomView, clickButton, wishListFocusView)
+	return wishListView
+
+#显示个人中心按钮
+addUserCenterButton = (topView) ->
+	userCenterButton = new Layer
 			x : 250
 			y : 378
 			width : 150
 			height : 55
-		centerBarClickView.addSubLayer userCenterButton
-		userCenterButton.on Events.Click, ->
-			userCenterView = generateNormalLayer()
-			userCenterView.image = "images/jingdong/detailpage/user_center.png"
-			pushViewController(centerBarClickView, null, userCenterView)
-			allOrderButton = new Layer
-				x : 0
-				y : 313
-				width : 640
-				height : 79
-			userCenterView.addSubLayer allOrderButton
-			allOrderButton.on Events.Click, ->
-				allOrder(userCenterView)
-			wishListButton = new Layer
-				x : 0
-				y : 663
-				width : 640
-				height : 79
-			userCenterView.addSubLayer wishListButton
-			wishListButton.on Events.Click, ->
-				wishList(userCenterView)
-		
-		allOrderButton = new Layer
-				x : 250
-				y : 448
-				width : 150
-				height : 55
-		centerBarClickView.addSubLayer allOrderButton
-		allOrderButton.on Events.Click, ->
-			allOrder(centerBarClickView)
-		
-
-allOrder = (bottomView) ->
-			allOrderView = generateNormalLayer()
-			allOrderView.image = "images/jingdong/detailpage/all_order.png"
-			pushViewController(bottomView, null, allOrderView)
+	topView.addSubLayer userCenterButton
+	userCenterButton.on Events.Click, ->
+		showUserCenterView(topView, userCenterButton)
+	return userCenterButton
 			
-wishList = (bottomView) ->
-			wishListView = generateNormalLayer()
-			wishListView.image = "images/jingdong/detailpage/wish_list.png"
-			pushViewController(bottomView, null, wishListView)
-			
-			wishListFocusButton = new Layer
-				x : 0
-				y : 373
-				width : 640
-				height : 79
-			wishListView.addSubLayer wishListFocusButton
-			wishListFocusButton.on Events.Click, ->
-				wishListFocus(wishListView)
+#显示个人中心
+showUserCenterView = (bottomView, clickButton) ->
+	userCenterView = generateNormalLayer()
+	userCenterView.image = "images/jingdong/detailpage/user_center.png"
+	changePageAnimation(bottomView, clickButton, userCenterView)
+	addJDDetailHeader(bottomView, clickButton, userCenterView)
+	return userCenterView
 
-wishListFocus = (bottomView) ->
-			wishListFocusView = generateNormalLayer()
-			wishListFocusView.image = "images/jingdong/detailpage/wish_list_focus.png"
-			pushViewController(bottomView, null, wishListFocusView)
+#显示全部订单按钮
+addAllOrderButton = (topView) ->
+	allOrderButton = new Layer
+		x : 250
+		y : 448
+		width : 150
+		height : 55
+	topView.addSubLayer allOrderButton
+	allOrderButton.on Events.Click, ->
+		showAllOrderView(topView)
+	return allOrderButton
 
+#显示全部订单页面
+showAllOrderView = (bottomView, clickButton) ->
+	allOrderView = generateNormalLayer()
+	allOrderView.image = "images/jingdong/detailpage/all_order.png"
+	changePageAnimation(bottomView, clickButton, allOrderView)
+	addJDDetailHeader(bottomView, clickButton, allOrderView)
+	return allOrderView
 
-pushJingdongHomepage = (clickCell) ->
-# 	clickCell.backgroundColor = "#d9d9d9"
-# 	clickCell.opacity = 0.8
+#增加详细页面进入的按钮
+addJDDetailPageButton = (topView) ->
+	jdDetailButton = new Layer
+		x : 0
+		y : 380
+		width : 320
+		height : 415
+	topView.addSubLayer jdDetailButton
+	jdDetailButton.on Events.Click, ->
+		showJDDetailPageView(topView, jdDetailButton);
+	return jdDetailButton
+
+#显示京东详细页面
+showJDDetailPageView = (bottomView, clickButton) ->
+	jdDetailPageView = generateScrollableFullScreenLayerImpl("images/gray_background.jpg", 
+			    "images/jingdong/detailpage/product_topbar.jpg",
+				"images/jingdong/detailpage/product_content.jpg",
+				"images/jingdong/detailpage/product_bottombar.jpg", null, 1531, false)
+	changePageAnimation(bottomView, clickButton, jdDetailPageView)
+	addJDDetailHeader(bottomView, clickButton, jdDetailPageView)
+	addBuyButton(jdDetailPageView)
+	return jdDetailPageView
 	
-	if thirdTab.name == "firsttime_homepage"
-		viewPage = new Layer
-			x : 640
-			y : 0
-			width : 640
-			height : 1136
-		viewPage.image = "images/jingdong/homepage/firsttime_homepage.png"
-		
-		enterButton = new Layer
+#增加购买的按钮
+addBuyButton = (topView) ->
+	buyButton = new Layer 
+			x : 10
+			y : 1136 - 98
+			width : 220
+			height : 98
+	topView.addSubLayer buyButton
+	buyButton.on Events.Click, ->
+		showProductSKUView(topView, buyButton)
+	return buyButton
+
+#显示商品详细页面
+showProductSKUView = (bottomView, clickButton) ->
+	productSkuView = generateNormalLayer()
+	productSkuView.image = "images/jingdong/detailpage/product_sku.png"
+	changePageAnimation(bottomView, clickButton, productSkuView)
+	addJDDetailHeader(bottomView, clickButton, productSkuView)
+	return productSkuView;
+	
+#增加确认按钮
+addConfirmButton = (topView) ->
+	confirmButton = new Layer
+		x : 160
+		y : 1136 - 120
+		width : 350
+		height : 84
+	topView.addSubLayer confirmButton
+	confirmButton.on Events.Click, ->
+		showPayView(topView, confirmButton)
+	return confirmButton
+	
+#显示确认界面
+showPayView = (bottomView, clickButton) ->
+	payView  = generateNormalLayer()
+	payView.image = "images/jingdong/detailpage/product_pay.jpg"
+	changePageAnimation(bottomView, clickButton, payView)
+	addBackButton(bottomView, clickButton, payView)
+	return payView
+
+#显示第一次的引导页面
+showFirstSnapshotView = (bottomView, clickButton) ->
+	firstSnapshotView = generateNormalLayer()
+	firstSnapshotView.image = "images/jingdong/homepage/firsttime_homepage.png"
+	changePageAnimation(bottomView, clickButton, firstSnapshotView)
+	enterButton = new Layer
 			x : (640 - 240)/2.0
 			y : 1136 - 110 - 50
 			width : 240
 			height : 50
-# 		enterButton.backgroundColor = null
-		viewPage.addSubLayer enterButton
-		enterButton.on Events.Click, ->
-			homepage = generateScrollableFullScreenLayer("images/gray_background.jpg", 				
-			    "images/jingdong/homepage/homepage_topbar.png",
-				"images/jingdong/homepage/homepage_content.png",
-				null, null, 1932)	
-			addBackButton(thirdTab, clickCell, homepage)
-			viewPage.x = 640
-			viewPage.visible = false
-			addJingdongDetailButton(homepage)
-		
-		thirdTab.name = null
-	else 
-		viewPage = generateScrollableFullScreenLayer("images/gray_background.jpg", 
-			    "images/jingdong/homepage/homepage_topbar.png",
-				"images/jingdong/homepage/homepage_content.png",
-				null, null, 1932)	
-		viewPage.x = 640
-		addJingdongDetailButton(viewPage)
+	firstSnapshotView.addSubLayer enterButton
+	enterButton.on Events.Click, ->
+		showJDHomePageView(firstSnapshotView, enterButton)
+	addJDDetailHeader(bottomView, clickButton, firstSnapshotView)
+	return firstSnapshotView;
+
 	
-	addBackButton(thirdTab, clickCell, viewPage)
-		
+
+# add jingdong detail header
+addJDDetailHeader = (bottomView, clickButton, topView) ->
+	addBackButton(bottomView, clickButton, topView)
+	addCenterDropListButton(topView)
+	addShopCardButton(topView)
+	addSearchButton(topView)
+
+#右到左的动画
+changePageAnimation = (bottomView, clickButton, topView) ->
+	viewPage = topView
+	topView.x = 640
+	
 	viewPage.animate
-    properties:
-      x: 0
-      y: 0
-    curve: "bezier-curve"
-    time: 0.5
+	    properties:
+	      x: 0
+	      y: 0
+	    curve: "bezier-curve"
+	    time: 0.5
 		delay: 0.1
 			
-	thirdTab.animate
+	bottomView.animate
 		properties:
 			x: -160
 			y: 0
-	curve: "bezier-curve"
-	time: 0.5
-	delay: 0.1
+		curve: "bezier-curve"
+		time: 0.5
+		delay: 0.1
+	topView.bringToFront()
+
+#左到有的动画
+changePageAnimationL2R = (bottomView, clickButton, topView) ->
+	viewPage = topView
+	topView.x = -160
+	viewPage.animate
+	    properties:
+	      x: 0
+	      y: 0
+	    curve: "bezier-curve"
+	    time: 0.5
+		delay: 0.1
+	bottomView.animate
+		properties:
+			x: 640
+			y: 0
+		curve: "bezier-curve"
+		time: 0.5
+		delay: 0.1
+	topView.placeBehind(bottomView)
+
+
+pushJingdongHomepage = (clickCell) ->
+	if thirdTab.name == "firsttime_homepage"
+		showFirstSnapshotView(thirdTab)
+		thirdTab.name = null
+	else 
+		showJDHomePageView(thirdTab)
 
 
 addSpecialEventForFindFriend = () ->
@@ -546,9 +685,9 @@ fourTab = generateFullScreenLayer("images/gray_background.jpg", 		"images/morevi
 null,
 910)
 
-#showMainFrameTabView()
+showMainFrameTabView()
 #showFindFriendTabView()å
-#thirdTab.name = null
-pushJingdongHomepage()
+# thirdTab.name = null
+# pushJingdongHomepage()
 
 
