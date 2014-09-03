@@ -354,6 +354,7 @@ showShopCardView = (bottomView, clickButton) ->
 	changePageAnimation(bottomView, clickButton, shopCardView)
 	addBackButton(bottomView, clickButton, shopCardView)
 	addSearchButton(shopCardView)
+	addCenterDropListButton(shopCardView)
 	return showShopCardView
 
 #增加搜索的按钮
@@ -740,9 +741,9 @@ fourTab = generateFullScreenLayer("images/gray_background.jpg", 		"images/morevi
 null,
 910)
 
-# showMainFrameTabView()
+showMainFrameTabView()
 #showFindFriendTabView()
-thirdTab.name = null
-pushJingdongHomepage()
+# thirdTab.name = null
+# pushJingdongHomepage()
 
 
