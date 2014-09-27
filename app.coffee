@@ -277,6 +277,27 @@ pushViewController = (bottomView, clickCell, topView) ->
 	time: 0.5
 	delay: 0.1
 
+addCancelButton = (bottomView, clickCell, topView) ->
+	cancelButton = new Layer
+		x : 520
+		y : 40
+		width : 150
+		height : 88
+	topView.addSubLayer cancelButton
+	
+	cancelButton.on Events.Click, ->
+		
+		topView.animate
+			properties:
+				x: 0
+				y: 1136
+			curve: "bezier-curve"
+			time: 0.5
+		
+	topView.on Events.AnimationEnd, ->
+		if topView.y >= 1136
+			topView.visible = false
+	return cancelButton
 
 addBackButton = (bottomView, clickCell, topView) ->
 	backButton = new Layer
@@ -304,7 +325,7 @@ addBackButton = (bottomView, clickCell, topView) ->
 		time: 0.01
 		
 	topView.on Events.AnimationEnd, ->
-		if topView.x == 640
+		if topView.x >= 640
 			topView.visible = false
 	return backButton
 
@@ -322,12 +343,13 @@ addCenterDropListButton = (topView) ->
 
 #显示中间下拉列表
 showCenterDropListView = (bottomView, clickButton) ->
-	centerDropListView = generateNormalLayer();
-	centerDropListView.image  = "images/jingdong/detailpage/click_center_bar.png"
-	changePageAnimation(bottomView, clickButton, centerDropListView)
-	addBackButton(bottomView, clickButton, centerDropListView)
-	addShopCardButton(centerDropListView)
-	addSearchButton(centerDropListView)
+	centerDropListView = new Layer
+		x : (640 - 300)/2.0
+		y : 128 - 10
+		width : 300
+		height : 395
+	centerDropListView.image  = "images/jingdong/detailpage/center_menu_list.png"
+	bottomView.addSubLayer centerDropListView
 	addJDHomePageButton(centerDropListView)
 	addClassifyButton(centerDropListView)
 	addWishListButton(centerDropListView)
@@ -372,31 +394,40 @@ addSearchButton = (topView) ->
 #显示搜索页面
 showSearchView = (bottomView, clickButton) ->
 	searchView = generateNormalLayer()
-	searchView.image = "images/jingdong/detailpage/search_homepage.png"
-	changePageAnimation(bottomView, clickButton, searchView)
-	backButton = addBackButton(bottomView, clickButton, searchView)
-	backButton.x = 520
-	backButton.width = 120
+	searchView.image = "images/jingdong/detailpage/search_homepage.jpg"
+
+	addCancelButton(bottomView, clickButton, searchView)
 	addSearchContentButton(searchView)
+	
+	searchView.y = 1136
+	searchView.animate
+	    properties:
+	      x: 0
+	      y: 0
+	    curve: "bezier-curve"
+	    time: 0.5
+			delay: 0.1
 	return searchView
 
 #显示主界面按钮
 addJDHomePageButton = (topView) ->
 	jdHomePageButton = new Layer
-		x : 250
-		y : 150
+		x : 75
+		y : 25
 		width : 150
 		height : 55
 	topView.addSubLayer jdHomePageButton
 	jdHomePageButton.on Events.Click, ->
-		showJDHomePageView(topView, jdHomePageButton)
+		showJDHomePageView(topView.superLayer, jdHomePageButton)
+		topView.visible = false
+		
 	return jdHomePageButton
 		
 #显示主页
 showJDHomePageView = (bottomView, clickButton) ->
 	jdHomePageView = generateScrollableFullScreenLayer("images/gray_background.jpg",
 			    "images/jingdong/homepage/homepage_topbar.png",
-				"images/jingdong/homepage/homepage_content.png",
+				"images/jingdong/homepage/homepage_content.jpg",
 				null, null, 1932)
 	changePageAnimation(bottomView, clickButton, jdHomePageView)
 	backButton = new Layer
@@ -407,6 +438,11 @@ showJDHomePageView = (bottomView, clickButton) ->
 	jdHomePageView.addSubLayer backButton
 	backButton.on Events.Click, ->
 		changePageAnimationL2R(jdHomePageView, clickButton, thirdTab)
+		
+	jdHomePageView.on Events.AnimationEnd, ->
+		if jdHomePageView.x >= 640
+			jdHomePageView.visible = false
+			
 	addCenterDropListButton(jdHomePageView)
 	addSearchButton(jdHomePageView)
 	addShopCardButton(jdHomePageView)
@@ -417,13 +453,15 @@ showJDHomePageView = (bottomView, clickButton) ->
 #分类导航的Button
 addClassifyButton = (topView) ->
 	classifyButton = new Layer
-		x : 250
-		y : 223
+		x : 75
+		y : 100
 		width : 150
 		height : 55
 	topView.addSubLayer classifyButton
 	classifyButton.on Events.Click, ->
-		showClassifyHomePageView(topView, classifyButton)
+		showClassifyHomePageView(topView.superLayer, classifyButton)
+		topView.visible = false
+		
 	return classifyButton
 
 #显示分类主界面
@@ -437,19 +475,20 @@ showClassifyHomePageView = (bottomView, clickButton) ->
 #显示心愿单的按钮
 addWishListButton = (topView) -> 
 	wishListButton = new Layer
-		x : 250
-		y : 298
+		x : 75
+		y : 175
 		width : 150
 		height : 55
 	topView.addSubLayer wishListButton
 	wishListButton.on Events.Click, ->
-		showWishListView(topView, wishListButton)
+		showWishListView(topView.superLayer, wishListButton)
+		topView.visible = false
 	return wishListButton
 
 #显示心愿列表
 showWishListView = (bottomView, clickButton) ->
 	wishListView = generateNormalLayer()
-	wishListView.image = "images/jingdong/detailpage/wish_list.png"
+	wishListView.image = "images/jingdong/detailpage/wish_list.jpg"
 	changePageAnimation(bottomView, clickButton, wishListView)
 	addJDDetailHeader(bottomView, clickButton, wishListView)
 	addWishListFocusButton(wishListView)
@@ -458,39 +497,46 @@ showWishListView = (bottomView, clickButton) ->
 #显示关注心愿列表按钮
 addWishListFocusButton = (topView) ->
 	wishListFocusButton = new Layer
-		x : 0
-		y : 373
-		width : 640
-		height : 79
+		x : 10
+		y : 393
+		width : 300
+		height : 360
 	topView.addSubLayer wishListFocusButton
 	wishListFocusButton.on Events.Click, ->
-		showWishListFocusView(topView)
+		showWishListFocusView(topView.superLayer)
+		topView.visible = false
+		
 	return wishListFocusButton
 
 #显示关注心愿列表
 showWishListFocusView = (bottomView, clickButton) ->
 	wishListFocusView = generateNormalLayer()
-	wishListFocusView.image = "images/jingdong/detailpage/wish_list_focus.png"
+	wishListFocusView.image = "images/jingdong/detailpage/wish_list_focus.jpg"
+
+	addBackButton(bottomView, clickButton, wishListFocusView)
+	addShopCardButton(wishListFocusView)
+	addSearchButton(wishListFocusView)
 	changePageAnimation(bottomView, clickButton, wishListFocusView)
-	addJDDetailHeader(bottomView, clickButton, wishListFocusView)
 	return wishListFocusView
 
 #显示个人中心按钮
 addUserCenterButton = (topView) ->
 	userCenterButton = new Layer
-			x : 250
-			y : 378
+			x : 75
+			y : 250
 			width : 150
 			height : 55
 	topView.addSubLayer userCenterButton
 	userCenterButton.on Events.Click, ->
-		showUserCenterView(topView, userCenterButton)
+		showUserCenterView(topView.superLayer, userCenterButton)
+		topView.visible = false
+		
 	return userCenterButton
 			
 #显示个人中心
 showUserCenterView = (bottomView, clickButton) ->
 	userCenterView = generateNormalLayer()
-	userCenterView.image = "images/jingdong/detailpage/user_center.png"
+	userCenterView.image = "images/jingdong/detailpage/user_center.jpg"
 	changePageAnimation(bottomView, clickButton, userCenterView)
 	addJDDetailHeader(bottomView, clickButton, userCenterView)
 	return userCenterView
@@ -498,19 +544,21 @@ showUserCenterView = (bottomView, clickButton) ->
 #显示全部订单按钮
 addAllOrderButton = (topView) ->
 	allOrderButton = new Layer
-		x : 250
-		y : 448
+		x : 75
+		y : 325
 		width : 150
 		height : 55
 	topView.addSubLayer allOrderButton
 	allOrderButton.on Events.Click, ->
-		showAllOrderView(topView)
+		showAllOrderView(topView.superLayer)
+		topView.visible = false
+		
 	return allOrderButton
 
 #显示全部订单页面
 showAllOrderView = (bottomView, clickButton) ->
 	allOrderView = generateNormalLayer()
-	allOrderView.image = "images/jingdong/detailpage/all_order.png"
+	allOrderView.image = "images/jingdong/detailpage/all_order.jpg"
 	changePageAnimation(bottomView, clickButton, allOrderView)
 	addJDDetailHeader(bottomView, clickButton, allOrderView)
 	return allOrderView
@@ -555,7 +603,7 @@ addBuyButton = (topView) ->
 #显示商品详细页面
 showProductSKUView = (bottomView, clickButton) ->
 	productSkuView = generateNormalLayer()
-	productSkuView.image = "images/jingdong/detailpage/product_sku.png"
+	productSkuView.image = "images/jingdong/detailpage/product_sku.jpg"
 	changePageAnimation(bottomView, clickButton, productSkuView)
 	addJDDetailHeader(bottomView, clickButton, productSkuView)
 	addConfirmButton(productSkuView)
@@ -595,7 +643,7 @@ addAddToShopCardButton = (topView) ->
 #显示第一次的引导页面
 showFirstSnapshotView = (bottomView, clickButton) ->
 	firstSnapshotView = generateNormalLayer()
-	firstSnapshotView.image = "images/jingdong/homepage/firsttime_homepage.png"
+	firstSnapshotView.image = "images/jingdong/homepage/firsttime_homepage.jpg"
 	changePageAnimation(bottomView, clickButton, firstSnapshotView)
 	enterButton = new Layer
 			x : (640 - 240)/2.0
@@ -606,6 +654,11 @@ showFirstSnapshotView = (bottomView, clickButton) ->
 	enterButton.on Events.Click, ->
 		showJDHomePageView(firstSnapshotView, enterButton)
 	addJDDetailHeader(bottomView, clickButton, firstSnapshotView)
+	
+	firstSnapshotView.on Events.AnimationEnd, ->
+		if firstSnapshotView.x >= 640
+			firstSnapshotView.visible = false
+			
 	return firstSnapshotView;
 
 #增加满足心愿按钮
@@ -623,7 +676,7 @@ addSatisfyWishButton = (topView) ->
 #满足心愿页面
 showSatisfyWishView = (bottomView, clickButton) ->
 	satisfyWishView = generateNormalLayer()
-	satisfyWishView.image = "images/jingdong/detailpage/satisfy_wish.png"
+	satisfyWishView.image = "images/jingdong/detailpage/satisfy_wish.jpg"
 	changePageAnimation(bottomView, clickButton, satisfyWishView)
 	addJDDetailHeader(bottomView, clickButton, satisfyWishView)
 	return satisfyWishView;
@@ -637,7 +690,7 @@ addSearchContentButton = (topView) ->
 		height : 88
 	topView.addSubLayer searchContentButton
 	searchContentButton.on Events.Click, ->
-		showSearchContentView(topView, searchContentButton)
+		topView.image = "images/jingdong/detailpage/search_content.png"
 
 #搜索内容页面
 showSearchContentView = (bottomView, clickButton) ->
