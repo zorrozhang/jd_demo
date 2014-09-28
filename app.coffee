@@ -3,6 +3,10 @@
 
 # # So to hide the layer for a group named "Main Screen" you can do:
 
+######### 定义全局变量
+STATUSBAR_HEIGHT = 0
+#########
+
 generateTabbarButton = () ->
 	buttonLayer = new Layer
 		x : 0
@@ -223,6 +227,19 @@ generateFullScreenLayer = (background, topbar, content, bottom, logo, contentHei
 	else 
 		return generateDragableFullScreenLayer(background, topbar, content, bottom, logo, contentHeight)
 		
+showLaunchView = () ->
+	launchView = new Layer
+		x: 0
+		y: STATUSBAR_HEIGHT
+		width: 640
+		height: 1136
+	launchView.image = "images/launch.jpg"
+
+	setTimeout((->
+		showMainFrameTabView()
+		launchView.visible = false
+		),5000)
+	
 showMainFrameTabView = () ->
 	firstTab.visible = true
 	firstTab.bringToFront()
@@ -777,14 +794,17 @@ firstTab = generateFullScreenLayer("images/black_background.png", 		"images/main
 "images/mainframe/mainframe_bottombar.jpg",
 "images/mainframe/mainframe_logo.png",
 9000)
+firstTab.visible = false
 
 secondTab = generateFullScreenLayer("images/black_background.png", 		"images/contactview/contactview_topbar.jpg", "images/contactview/contactview_content.jpg", "images/contactview/contactview_bottombar.jpg",
 null,
 6000)
+secondTab.visible = false
 
 thirdTab = generateFullScreenLayer("images/gray_background.jpg", 		"images/findfriend/findfriend_topbar.jpg", "images/findfriend/findfriend_content.jpg", "images/findfriend/findfriend_bottombar.jpg",
 null,
 910)
+thirdTab.visible = false
 
 thirdTab.name = "firsttime_homepage"
 addSpecialEventForFindFriend()
@@ -793,10 +813,8 @@ fourTab = generateFullScreenLayer("images/gray_background.jpg", 		"images/morevi
 "images/moreview/moreview_content.jpg", "images/moreview/moreview_bottombar.jpg",
 null,
 910)
+fourTab.visible = false
 
-showMainFrameTabView()
-#showFindFriendTabView()
-# thirdTab.name = null
-# pushJingdongHomepage()
+showLaunchView()
 
 
