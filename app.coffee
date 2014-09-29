@@ -4,13 +4,17 @@
 # # So to hide the layer for a group named "Main Screen" you can do:
 
 ######### 定义全局变量
-STATUSBAR_HEIGHT = 0
+STATUSBAR_HEIGHT = 40
+SCREEN_HEIGHT = 1136 - 40
+SCREEN_WIDTH = 640
+TABBAR_HEIGHT = 98
+TOPBAR_HEIGHT = 88
 #########
 
 generateTabbarButton = () ->
 	buttonLayer = new Layer
 		x : 0
-		y : 1136 - 98
+		y : SCREEN_HEIGHT - TABBAR_HEIGHT
 		width : 155
 		height : 100
 # 	buttonLayer.backgroundColor = null
@@ -19,9 +23,9 @@ generateTabbarButton = () ->
 generateNormalLayer = () ->
 	normalLayer = new Layer
 		x : 0
-		y : 0
-		width : 640
-		height : 1136
+		y : STATUSBAR_HEIGHT
+		width : SCREEN_WIDTH
+		height : SCREEN_HEIGHT
 	return normalLayer
 
 generateDragableFullScreenLayer  = (background, topbar, content, bottom, logo, contentHeight) ->
@@ -33,7 +37,7 @@ generateDragableFullScreenLayer  = (background, topbar, content, bottom, logo, c
 	tempLayer = new Layer
 		x : 0
 		y : 0
-		width : 640
+		width : SCREEN_WIDTH
 		height : 1037
 	tempLayer.image = background
 
@@ -53,7 +57,7 @@ generateDragableFullScreenLayer  = (background, topbar, content, bottom, logo, c
 	contentLayer.image = content
 	contentLayer.frame = new Frame
 		x : 0
-		y : 128
+		y : 128 - STATUSBAR_HEIGHT
 		width : containerLayer.width
 		height : 910
 	tempLayer.addSubLayer contentLayer
@@ -64,16 +68,16 @@ generateDragableFullScreenLayer  = (background, topbar, content, bottom, logo, c
 		x : 0
 		y : 0
 		width : containerLayer.width
-		height : 128
+		height : TOPBAR_HEIGHT
 	containerLayer.addSubLayer topBarLayer
 		
 	bottombarLayer = new Layer
 	bottombarLayer.image = bottom 
 	bottombarLayer.frame = new Frame
 		x : topBarLayer.x
-		y : contentLayer.y + contentLayer.height
+		y : SCREEN_HEIGHT - TABBAR_HEIGHT
 		width : containerLayer.width
-		height : containerLayer.height - topBarLayer.height - contentLayer.height
+		height : TABBAR_HEIGHT
 	containerLayer.addSubLayer bottombarLayer
 	
 	firstTabButton = generateTabbarButton()
@@ -144,12 +148,12 @@ generateScrollableFullScreenLayerImpl = (background, topbar, content, bottom, lo
 	tempLayer = new Layer
 		x : 0
 		y : 0
-		width : 640
+		width : SCREEN_WIDTH
 		height : 1037
 	tempLayer.image = background
 	tempLayer.scrollVertical = true
 	if bottom == null
-		tempLayer.height = 1136
+		tempLayer.height = SCREEN_HEIGHT
 	containerLayer.addSubLayer tempLayer
 	
 	if logo != null
@@ -166,7 +170,7 @@ generateScrollableFullScreenLayerImpl = (background, topbar, content, bottom, lo
 	contentLayer.image = content
 	contentLayer.frame = new Frame
 		x : 0
-		y : 128
+		y : TOPBAR_HEIGHT
 		width : tempLayer.width
 		height : 910
 	tempLayer.addSubLayer contentLayer
@@ -177,7 +181,7 @@ generateScrollableFullScreenLayerImpl = (background, topbar, content, bottom, lo
 		x : 0
 		y : 0
 		width : tempLayer.width
-		height : 128
+		height : TOPBAR_HEIGHT
 	containerLayer.addSubLayer topBarLayer
 		
 	if bottom != null
@@ -187,7 +191,7 @@ generateScrollableFullScreenLayerImpl = (background, topbar, content, bottom, lo
 			x : topBarLayer.x
 			y : contentLayer.y + contentLayer.height
 			width : tempLayer.width
-			height : tempLayer.height - topBarLayer.height - contentLayer.height
+			height : TABBAR_HEIGHT
 		containerLayer.addSubLayer bottombarLayer
 		
 		if needTabbar
@@ -222,7 +226,7 @@ generateScrollableFullScreenLayer = (background, topbar, content, bottom, logo, 
 	return generateScrollableFullScreenLayerImpl(background, topbar, content, bottom, logo, contentHeight, true)
 	
 generateFullScreenLayer = (background, topbar, content, bottom, logo, contentHeight) ->
-	if contentHeight > 1136
+	if contentHeight > SCREEN_HEIGHT
 		return generateScrollableFullScreenLayer(background, topbar, content, bottom, logo, contentHeight)
 	else 
 		return generateDragableFullScreenLayer(background, topbar, content, bottom, logo, contentHeight)
@@ -231,8 +235,8 @@ showLaunchView = () ->
 	launchView = new Layer
 		x: 0
 		y: STATUSBAR_HEIGHT
-		width: 640
-		height: 1136
+		width: SCREEN_WIDTH
+		height: SCREEN_HEIGHT
 	launchView.image = "images/launch.jpg"
 
 	setTimeout((->
@@ -274,7 +278,7 @@ pushViewController = (bottomView, clickCell, topView) ->
 		clickCell.opacity = 0.8
 	
 	viewPage = topView
-	topView.x = 640
+	topView.x = SCREEN_WIDTH
 	
 	addBackButton(bottomView, null, topView)
 		
@@ -297,7 +301,7 @@ pushViewController = (bottomView, clickCell, topView) ->
 addCancelButton = (bottomView, clickCell, topView) ->
 	cancelButton = new Layer
 		x : 520
-		y : 40
+		y : 0
 		width : 150
 		height : 88
 	topView.addSubLayer cancelButton
@@ -307,19 +311,19 @@ addCancelButton = (bottomView, clickCell, topView) ->
 		topView.animate
 			properties:
 				x: 0
-				y: 1136
+				y: SCREEN_HEIGHT
 			curve: "bezier-curve"
 			time: 0.5
 		
 	topView.on Events.AnimationEnd, ->
-		if topView.y >= 1136
+		if topView.y >= SCREEN_HEIGHT
 			topView.visible = false
 	return cancelButton
 
 addBackButton = (bottomView, clickCell, topView) ->
 	backButton = new Layer
 		x : 0
-		y : 40
+		y : 0
 		width : 140
 		height : 88
 	topView.addSubLayer backButton
@@ -328,8 +332,8 @@ addBackButton = (bottomView, clickCell, topView) ->
 		
 		topView.animate
 			properties:
-				x: 640
-				y: 0
+				x: SCREEN_WIDTH
+				y: STATUSBAR_HEIGHT
 			curve: "bezier-curve"
 			time: 0.5
 			
@@ -337,12 +341,12 @@ addBackButton = (bottomView, clickCell, topView) ->
 		bottomView.animate
 			properties:
 				x: 0
-				y: 0
+				y: STATUSBAR_HEIGHT
 		curve: "bezier-curve"
 		time: 0.01
 		
 	topView.on Events.AnimationEnd, ->
-		if topView.x >= 640
+		if topView.x >= SCREEN_WIDTH
 			topView.visible = false
 	return backButton
 
@@ -350,19 +354,23 @@ addBackButton = (bottomView, clickCell, topView) ->
 addCenterDropListButton = (topView) ->
 	centerDropListButton = new Layer
 		x : 260
-		y : 40
+		y : 0
 		width : 150
 		height : 88
 	topView.addSubLayer centerDropListButton
+	centerDropListView = null
 	centerDropListButton.on Events.Click, ->
-		showCenterDropListView(topView, centerDropListButton)
+		if centerDropListView == null
+			centerDropListView = showCenterDropListView(topView, centerDropListButton)
+		else
+			centerDropListView.visible = !centerDropListView.visible
 	return centerDropListButton
 
 #显示中间下拉列表
 showCenterDropListView = (bottomView, clickButton) ->
 	centerDropListView = new Layer
-		x : (640 - 300)/2.0
-		y : 128 - 10
+		x : (SCREEN_WIDTH - 300)/2.0
+		y : 128 - 10 - STATUSBAR_HEIGHT
 		width : 300
 		height : 395
 	centerDropListView.image  = "images/jingdong/detailpage/center_menu_list.png"
@@ -378,7 +386,7 @@ showCenterDropListView = (bottomView, clickButton) ->
 addShopCardButton = (topView) ->
 	shopCardButton = new Layer
 		x : 555
-		y : 40
+		y : 0
 		width : 60
 		height : 88
 	topView.addSubLayer shopCardButton
@@ -400,7 +408,7 @@ showShopCardView = (bottomView, clickButton) ->
 addSearchButton = (topView) ->
 	searchButton = new Layer
 		x : 468
-		y : 40
+		y : 0
 		width : 60
 		height : 88
 	topView.addSubLayer searchButton
@@ -416,11 +424,11 @@ showSearchView = (bottomView, clickButton) ->
 	addCancelButton(bottomView, clickButton, searchView)
 	addSearchContentButton(searchView)
 	
-	searchView.y = 1136
+	searchView.y = SCREEN_HEIGHT
 	searchView.animate
 	    properties:
 	      x: 0
-	      y: 0
+	      y: STATUSBAR_HEIGHT
 	    curve: "bezier-curve"
 	    time: 0.5
 			delay: 0.1
@@ -449,7 +457,7 @@ showJDHomePageView = (bottomView, clickButton) ->
 	changePageAnimation(bottomView, clickButton, jdHomePageView)
 	backButton = new Layer
 		x : 0
-		y : 40
+		y : 0
 		width : 140
 		height : 88
 	jdHomePageView.addSubLayer backButton
@@ -457,7 +465,7 @@ showJDHomePageView = (bottomView, clickButton) ->
 		changePageAnimationL2R(jdHomePageView, clickButton, thirdTab)
 		
 	jdHomePageView.on Events.AnimationEnd, ->
-		if jdHomePageView.x >= 640
+		if jdHomePageView.x >= SCREEN_WIDTH
 			jdHomePageView.visible = false
 			
 	addCenterDropListButton(jdHomePageView)
@@ -584,7 +592,7 @@ showAllOrderView = (bottomView, clickButton) ->
 addJDDetailPageButton = (topView) ->
 	jdDetailButton = new Layer
 		x : 0
-		y : 380
+		y : 340
 		width : 320
 		height : 415
 	topView.addSubLayer jdDetailButton
@@ -609,7 +617,7 @@ showJDDetailPageView = (bottomView, clickButton) ->
 addBuyButton = (topView) ->
 	buyButton = new Layer 
 			x : 12
-			y : 1136 - 88
+			y : SCREEN_HEIGHT - 88
 			width : 210
 			height : 78
 	topView.addSubLayer buyButton
@@ -630,7 +638,7 @@ showProductSKUView = (bottomView, clickButton) ->
 addConfirmButton = (topView) ->
 	confirmButton = new Layer
 		x : 160
-		y : 1136 - 120
+		y : SCREEN_HEIGHT - 120
 		width : 350
 		height : 84
 	topView.addSubLayer confirmButton
@@ -650,7 +658,7 @@ showPayView = (bottomView, clickButton) ->
 addAddToShopCardButton = (topView) ->
 	addToShopCardButton = new Layer 
 		x : 230
-		y : 1136 - 88
+		y : SCREEN_HEIGHT - 88
 		width : 200
 		height : 78
 	topView.addSubLayer addToShopCardButton
@@ -663,8 +671,8 @@ showFirstSnapshotView = (bottomView, clickButton) ->
 	firstSnapshotView.image = "images/jingdong/homepage/firsttime_homepage.jpg"
 	changePageAnimation(bottomView, clickButton, firstSnapshotView)
 	enterButton = new Layer
-			x : (640 - 240)/2.0
-			y : 1136 - 110 - 50
+			x : (SCREEN_WIDTH - 240)/2.0
+			y : SCREEN_HEIGHT - 110 - 50
 			width : 240
 			height : 50
 	firstSnapshotView.addSubLayer enterButton
@@ -673,7 +681,7 @@ showFirstSnapshotView = (bottomView, clickButton) ->
 	addJDDetailHeader(bottomView, clickButton, firstSnapshotView)
 	
 	firstSnapshotView.on Events.AnimationEnd, ->
-		if firstSnapshotView.x >= 640
+		if firstSnapshotView.x >= SCREEN_WIDTH
 			firstSnapshotView.visible = false
 			
 	return firstSnapshotView;
@@ -682,7 +690,7 @@ showFirstSnapshotView = (bottomView, clickButton) ->
 addSatisfyWishButton = (topView) ->
 	satisfyWishButton = new Layer
 		x : 410
-		y : 140
+		y : 100
 		width : 220
 		height : 70
 	topView.addSubLayer satisfyWishButton
@@ -702,7 +710,7 @@ showSatisfyWishView = (bottomView, clickButton) ->
 addSearchContentButton = (topView) ->
 	searchContentButton = new Layer
 		x : 20
-		y : 42
+		y : 2
 		width : 490
 		height : 88
 	topView.addSubLayer searchContentButton
@@ -730,12 +738,12 @@ addJDDetailHeader = (bottomView, clickButton, topView) ->
 #右到左的动画
 changePageAnimation = (bottomView, clickButton, topView) ->
 	viewPage = topView
-	topView.x = 640
+	topView.x = SCREEN_WIDTH
 	
 	viewPage.animate
 	    properties:
 	      x: 0
-	      y: 0
+	      y: STATUSBAR_HEIGHT
 	    curve: "bezier-curve"
 	    time: 0.5
 		delay: 0.1
@@ -743,7 +751,7 @@ changePageAnimation = (bottomView, clickButton, topView) ->
 	bottomView.animate
 		properties:
 			x: -160
-			y: 0
+			y: STATUSBAR_HEIGHT
 		curve: "bezier-curve"
 		time: 0.5
 		delay: 0.1
@@ -756,14 +764,14 @@ changePageAnimationL2R = (bottomView, clickButton, topView) ->
 	viewPage.animate
 	    properties:
 	      x: 0
-	      y: 0
+	      y: STATUSBAR_HEIGHT
 	    curve: "bezier-curve"
 	    time: 0.5
 		delay: 0.1
 	bottomView.animate
 		properties:
-			x: 640
-			y: 0
+			x: SCREEN_WIDTH
+			y: STATUSBAR_HEIGHT
 		curve: "bezier-curve"
 		time: 0.5
 		delay: 0.1
@@ -781,10 +789,9 @@ pushJingdongHomepage = (clickCell) ->
 addSpecialEventForFindFriend = () ->
 	shoppingLayer = new Layer
 		x : 0
-		y : thirdTab.height - 320 - 98
+		y : thirdTab.height - 320 - TABBAR_HEIGHT
 		width : thirdTab.width
 		height : 88
-# 	shoppingLayer.backgroundColor = #FFFFFF
 	thirdTab.addSubLayer shoppingLayer
 	shoppingLayer.on Events.Click, ->
 		pushJingdongHomepage(shoppingLayer)
@@ -793,12 +800,12 @@ firstTab = generateFullScreenLayer("images/black_background.png", 		"images/main
 "images/mainframe/mainframe_content.jpg",
 "images/mainframe/mainframe_bottombar.jpg",
 "images/mainframe/mainframe_logo.png",
-9000)
+1500)
 firstTab.visible = false
 
 secondTab = generateFullScreenLayer("images/black_background.png", 		"images/contactview/contactview_topbar.jpg", "images/contactview/contactview_content.jpg", "images/contactview/contactview_bottombar.jpg",
 null,
-6000)
+1189)
 secondTab.visible = false
 
 thirdTab = generateFullScreenLayer("images/gray_background.jpg", 		"images/findfriend/findfriend_topbar.jpg", "images/findfriend/findfriend_content.jpg", "images/findfriend/findfriend_bottombar.jpg",
