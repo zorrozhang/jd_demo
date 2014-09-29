@@ -4,7 +4,7 @@
 # # So to hide the layer for a group named "Main Screen" you can do:
 
 ######### 定义全局变量
-STATUSBAR_HEIGHT = 40
+STATUSBAR_HEIGHT = 0
 SCREEN_HEIGHT = 1136 - 40
 SCREEN_WIDTH = 640
 TABBAR_HEIGHT = 98
@@ -57,7 +57,7 @@ generateDragableFullScreenLayer  = (background, topbar, content, bottom, logo, c
 	contentLayer.image = content
 	contentLayer.frame = new Frame
 		x : 0
-		y : 128 - STATUSBAR_HEIGHT
+		y : 88
 		width : containerLayer.width
 		height : 910
 	tempLayer.addSubLayer contentLayer
