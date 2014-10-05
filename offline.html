@@ -1,12 +1,14 @@
+<!-- This uses an offline manifest to make it available without an internet connection -->
+
 <!DOCTYPE html>
-<html>
+<html manifest="framer/app.manifest">
 	<head>
 		<meta charset="utf-8">
 		
-		<meta name="format-detection" content="telephone=no">
 		<meta name="apple-mobile-web-app-capable" content="yes">
-		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-		<meta name="viewport" content="width=device-width, height=device-height, initial-scale=0.5, maximum-scale=0.5, user-scalable=no">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+		<meta name="format-detection" content="telephone=no">
+		<meta name="viewport" content="width=device-width, height=device-height, initial-scale=0.5, maximum-scale=0.5, user-scalable=no, minimal-ui">
 
 		<link rel="apple-touch-icon" href="framer/images/icon-120.png">
 		<link rel="apple-touch-icon" href="framer/images/icon-76.png" sizes="76x76">
@@ -17,7 +19,6 @@
 
 		<script src="framer/coffee-script.js"></script>
 		<script src="framer/framer.js"></script>
-		<script src="framer/framer.generated.js"></script>
 		<script src="framer/init.js"></script>
 
 	</head>
