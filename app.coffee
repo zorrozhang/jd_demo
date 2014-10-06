@@ -789,7 +789,7 @@ pushJingdongHomepage = (clickCell) ->
 addSpecialEventForFindFriend = () ->
 	shoppingLayer = new Layer
 		x : 0
-		y : thirdTab.height - 320 - TABBAR_HEIGHT
+		y : thirdTab.height - 320 - TABBAR_HEIGHT - 88
 		width : thirdTab.width
 		height : 88
 	thirdTab.addSubLayer shoppingLayer
