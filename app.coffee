@@ -231,6 +231,19 @@ generateFullScreenLayer = (background, topbar, content, bottom, logo, contentHei
 	else 
 		return generateDragableFullScreenLayer(background, topbar, content, bottom, logo, contentHeight)
 	
+showLaunchView = () ->
+	launchView = new Layer
+		x: 0
+		y: STATUSBAR_HEIGHT
+		width: SCREEN_WIDTH
+		height: SCREEN_HEIGHT
+	launchView.image = "images/launch.jpg"
+
+	setTimeout((->
+		showMainFrameTabView()
+		launchView.visible = false
+		),5000)
+		
 showMainFrameTabView = () ->
 	firstTab.visible = true
 	firstTab.bringToFront()
@@ -809,6 +822,6 @@ null,
 910)
 fourTab.visible = false
 
-showMainFrameTabView()
+showLaunchView()
 
 
