@@ -453,7 +453,7 @@ showJDHomePageView = (bottomView, clickButton) ->
 	jdHomePageView = generateScrollableFullScreenLayer("images/gray_background.jpg",
 			    "images/jingdong/homepage/homepage_topbar.png",
 				"images/jingdong/homepage/homepage_content.jpg",
-				null, null, 1932)
+				null, null, 1529)
 	changePageAnimation(bottomView, clickButton, jdHomePageView)
 	backButton = new Layer
 		x : 0
@@ -591,9 +591,9 @@ showAllOrderView = (bottomView, clickButton) ->
 #增加详细页面进入的按钮
 addJDDetailPageButton = (topView) ->
 	jdDetailButton = new Layer
-		x : 0
-		y : 340
-		width : 320
+		x : 20
+		y : 740
+		width : 300
 		height : 415
 	topView.addSubLayer jdDetailButton
 	jdDetailButton.on Events.Click, ->
@@ -822,6 +822,7 @@ null,
 910)
 fourTab.visible = false
 
-showLaunchView()
+# showLaunchView()
+showMainFrameTabView()
 
 
