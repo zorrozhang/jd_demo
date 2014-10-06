@@ -1,5 +1,8 @@
-# This imports all the layers for "timeline" into streetLayers
-streetLayers = Framer.Importer.load "imported/timeline"
+# This imports all the layers for "timeline" into timelineLayers
+timelineLayers = Framer.Importer.load "imported/timeline"
+
+# This imports all the layers for "street" into streetLayers
+streetLayers = Framer.Importer.load "imported/street"
 
 # This imports all the layers for "index" into indexLayers
 indexLayers = Framer.Importer.load "imported/index"
@@ -219,97 +222,117 @@ buttonLayer.addSubLayer(btnLayer)
 btnLayer.on Events.TouchStart, ->
 	this.backgroundColor = primaryColor
 	this.style = {color: '#fff'}
-	
+
+# Change card1 to btnLayer	
 card1.on Events.TouchEnd, ->
 	this.backgroundColor = 'transparent'
 	this.style = {color: primaryColor}
 	
-	goods1 = streetLayers.goods1
-	goods2 = streetLayers.goods2
-	goods3= streetLayers.goods1
-	goods4 = streetLayers.goods2
-	goods5 = streetLayers.goods1
-	goods6 = streetLayers.goods2
+	goods1 = timelineLayers.goods1
+	goods2 = timelineLayers.goods2
+	goods3 = timelineLayers.goods3
+# 	goods4 = timelineLayers.goods2
+# 	goods5 = timelineLayers.goods1
+# 	goods6 = timelineLayers.goods2
+	
+	goodsToShowNum = 8
+	goodsWidth = 290
+	goodsHeight = 450
+	goodsMargin = 20
+	
+	goodsAll = [goods1, goods2, goods3]
+	goodsLeft = goodsAll
+	goodsToShow = []
+	
+	[0..goodsAll.length - 1].map (i)->
+		console.log(i)
+# 		goodsAll[i].visible = false
+		choice = Math.floor(Math.random() * goodsLeft.length)
+# 		console.log(choice)
+		goods = goodsLeft[choice]
+# 		console.log(goods)
 		
-	goods = []
-	goodsGroup1 = []
-	goodsGroup2 = []
-	goodsGroup3 = []
-	goodsGroup4 = []
-	goodsGroup5 = []
-	goodsGroup6 = []
-	goodsGroup7 = []
-	goodsGroup8 = []
-	goodsGroupAll = [goodsGroup1, goodsGroup2, goodsGroup3, goodsGroup4, goodsGroup5, goodsGroup6, goodsGroup7, goodsGroup8]
-	
-	[0..cards.length-1].map (i) ->
-		if cards[i].states.current == 'selected'
-			goods += goodsGroupAll[i]
-	
-# 	streetLayers.bg = indexLayers.bg # Reuse the background image
-	streetLayers.content
-			
-	# Push page Timeline
-	timelinePage = push(streetLayers,indexLayers)
-	
-	navLayer = streetLayers.nav
-	eleLayer = streetLayers.elevator
-	
-	streetBtnWidth = 138
-	
-	streetNames = ['女鞋街', '男鞋街', '服装城', '美妆店', '美食城', '运动街', '趣玩店', '家具城']
-	[0..streetNames.length - 1].map (i) ->
-		street = new Layer
-			width: streetBtnWidth
-			height: navLayer.height
-	
-	
-	nav = new Layer
-		x: eleLayer.width
-# 		y: navLayer.y
-		width: streetNames.length * streetBtnWidth
-		height: navLayer.height
+		# Remove the chosen goods
+		goodsLeft.splice(choice, 1)
 		
-	nav.draggable.enabled = true
-	nav.draggable.speedX = 0.8
-	nav.draggable.speedY = 0
+		# Add goods to content
+		if i > 0
+			goods.x = i % 2 * (goodsWidth + goodsMargin)
+			goods.y = (Math.floor((i + 1) / 2)) * goodsHeight + goodsMargin
+			goods.html = i
+		else
+			goods.x = 0
+			goods.y = 0
+			goods.html = i
+		
+		
 	
-	originX = nav.x
-	originY = nav.y
-	
-	# Snap the chat list
-	nav.on Events.DragEnd, (event, layer) ->
-		if layer.x > originX
-			layer.animate
-				properties:
-					x: originX
-					y: originY
-				curve: "spring"
-				curveOptions:
-					friction: 20
-					tension: 200
-					velocity: 10
+# 	Push page Timeline
+	timelinePage = push(timelineLayers,indexLayers)
+	timelineContent = timelinePage.subLayersByName('content')[0]
+	makeScrollable(timelineContent)
 			
-		if layer.x < originX - layer.width + deviceWidth - eleLayer.width
-			layer.animate
-				properties:
-					x: originX - layer.width + deviceWidth - eleLayer.width
-					y: originY
-				curve: "spring"
-				curveOptions:
-					friction: 20
-					tension: 200
-					velocity: 10
-	
-	
-	
-	navLayer.addSubLayer(nav)
-	eleLayer.bringToFront()
-	
-	timelinePage.addSubLayer(navLayer)
-	timelinePage.height = deviceHeight
-	
-	content = timelinePage.subLayersByName('content')[0]
-	makeScrollable(content)
+	# Push page Street
+# 	streetPage = push(streetLayers,indexLayers)
+# 	
+# 	navLayer = streetLayers.nav
+# 	eleLayer = streetLayers.elevator
+# 	
+# 	streetBtnWidth = 138
+# 	
+# 	streetNames = ['女鞋街', '男鞋街', '服装城', '美妆店', '美食城', '运动街', '趣玩店', '家具城']
+# 	[0..streetNames.length - 1].map (i) ->
+# 		street = new Layer
+# 			width: streetBtnWidth
+# 			height: navLayer.height
+# 	
+# 	
+# 	nav = new Layer
+# 		x: eleLayer.width
+# # 		y: navLayer.y
+# 		width: streetNames.length * streetBtnWidth
+# 		height: navLayer.height
+# 		
+# 	nav.draggable.enabled = true
+# 	nav.draggable.speedX = 0.8
+# 	nav.draggable.speedY = 0
+# 	
+# 	originX = nav.x
+# 	originY = nav.y
+# 	
+# 	# Snap the chat list
+# 	nav.on Events.DragEnd, (event, layer) ->
+# 		if layer.x > originX
+# 			layer.animate
+# 				properties:
+# 					x: originX
+# 					y: originY
+# 				curve: "spring"
+# 				curveOptions:
+# 					friction: 20
+# 					tension: 200
+# 					velocity: 10
+# 			
+# 		if layer.x < originX - layer.width + deviceWidth - eleLayer.width
+# 			layer.animate
+# 				properties:
+# 					x: originX - layer.width + deviceWidth - eleLayer.width
+# 					y: originY
+# 				curve: "spring"
+# 				curveOptions:
+# 					friction: 20
+# 					tension: 200
+# 					velocity: 10
+# 	
+# 	
+# 	
+# 	navLayer.addSubLayer(nav)
+# 	eleLayer.bringToFront()
+# 	
+# 	streetPage.addSubLayer(navLayer)
+# 	streetPage.height = deviceHeight
+# 	
+# 	content = streetPage.subLayersByName('content')[0]
+# 	makeScrollable(content)
 	
 # Add events here

@@ -1,5 +1,5 @@
 CACHE MANIFEST
-# 1412528640.906327
+# 1412563374.292705
 CACHE:
 /_server/server.js
 ../app.coffee
@@ -53,20 +53,41 @@ CACHE:
 ../imported/index/images/卡片3 pressed.png
 ../imported/index/layers.json
 ../imported/index/layers.json.js
+../imported/street/framerps.log
+../imported/street/images/banner.png
+../imported/street/images/bg.png
+../imported/street/images/cell.png
+../imported/street/images/elevator.png
+../imported/street/images/goods1.png
+../imported/street/images/goods2.png
+../imported/street/images/nav.png
+../imported/street/images/search.png
+../imported/street/images/Text.png
+../imported/street/images/topBar.png
+../imported/street/layers.json
+../imported/street/layers.json.js
 ../imported/timeline/framerps.log
 ../imported/timeline/images/ 比一比 心愿单.png
+../imported/timeline/images/ad.png
+../imported/timeline/images/ad1.png
+../imported/timeline/images/ad2.png
 ../imported/timeline/images/banner.png
 ../imported/timeline/images/bg.png
 ../imported/timeline/images/cell.png
+../imported/timeline/images/compare.png
 ../imported/timeline/images/cover.png
 ../imported/timeline/images/elevator.png
 ../imported/timeline/images/goods1.png
 ../imported/timeline/images/goods2.png
+../imported/timeline/images/goods3.png
+../imported/timeline/images/like-2.png
+../imported/timeline/images/like.png
 ../imported/timeline/images/nav.png
 ../imported/timeline/images/navbg.png
 ../imported/timeline/images/search.png
 ../imported/timeline/images/Text.png
 ../imported/timeline/images/topBar.png
+../imported/timeline/images/wishlist.png
 ../imported/timeline/images/搜索.png
 ../imported/timeline/images/电梯.png
 ../imported/timeline/images/组 10.png
