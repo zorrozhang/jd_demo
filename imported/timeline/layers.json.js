@@ -237,17 +237,34 @@ window.__imported__["timeline/layers.json.js"] = [
 					"height": 1800
 				},
 				"maskFrame": null,
-				"image": {
-					"path": "images/cell.png",
-					"frame": {
-						"x": 0,
-						"y": 368,
-						"width": 640,
-						"height": 320
-					}
-				},
-				"imageType": "png",
+				"image": null,
+				"imageType": null,
 				"children": [
+					{
+						"id": 646,
+						"name": "streetEnter",
+						"layerFrame": {
+							"x": 0,
+							"y": 0,
+							"width": 640,
+							"height": 1800
+						},
+						"maskFrame": null,
+						"image": {
+							"path": "images/streetEnter.png",
+							"frame": {
+								"x": 0,
+								"y": 368,
+								"width": 640,
+								"height": 320
+							}
+						},
+						"imageType": "png",
+						"children": [
+							
+						],
+						"modification": "1016782789"
+					},
 					{
 						"id": 631,
 						"name": "compare",
@@ -264,14 +281,14 @@ window.__imported__["timeline/layers.json.js"] = [
 								"x": 0,
 								"y": 368,
 								"width": 321,
-								"height": 159
+								"height": 160
 							}
 						},
 						"imageType": "png",
 						"children": [
 							
 						],
-						"modification": "1620176119"
+						"modification": "957189214"
 					},
 					{
 						"id": 383,
@@ -296,10 +313,10 @@ window.__imported__["timeline/layers.json.js"] = [
 						"children": [
 							
 						],
-						"modification": "125638148"
+						"modification": "1251988795"
 					}
 				],
-				"modification": "1238169917"
+				"modification": "1611054991"
 			},
 			{
 				"id": 337,
@@ -327,7 +344,7 @@ window.__imported__["timeline/layers.json.js"] = [
 				"modification": "1961520367"
 			}
 		],
-		"modification": "190711087"
+		"modification": "518770077"
 	},
 	{
 		"id": 624,

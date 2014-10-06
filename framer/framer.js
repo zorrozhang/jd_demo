@@ -1,5 +1,5 @@
 ;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-var AnimatorClasses, BezierCurveAnimator, Config, Defaults, EventEmitter, Frame, LinearAnimator, SpringDHOAnimator, SpringRK4Animator, Utils, evaluateRelativeProperty, isRelativeProperty, numberRE, relativePropertyRE, _,
+var AnimatorClasses, BezierCurveAnimator, Config, Defaults, EventEmitter, Frame, LinearAnimator, SpringDHOAnimator, SpringRK4Animator, Utils, evaluateRelativeProperty, isRelativeProperty, numberRE, relativePropertyRE, _, _runningAnimations,
   __slice = [].slice,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
@@ -54,16 +54,19 @@ evaluateRelativeProperty = function(target, k, v) {
   }
 };
 
+_runningAnimations = [];
+
 exports.Animation = (function(_super) {
   __extends(Animation, _super);
+
+  Animation.runningAnimations = function() {
+    return _runningAnimations;
+  };
 
   function Animation(options) {
     if (options == null) {
       options = {};
     }
-    this._updateValue = __bind(this._updateValue, this);
-    this._update = __bind(this._update, this);
-    this._start = __bind(this._start, this);
     this.start = __bind(this.start, this);
     options = Defaults.getDefaults("Animation", options);
     Animation.__super__.constructor.call(this, options);
@@ -89,153 +92,12 @@ exports.Animation = (function(_super) {
     this._repeatCounter = this.options.repeat;
   }
 
-  Animation.prototype.start = function() {
-    var AnimatorClass, k, key, runningAnimation, v, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3,
-      _this = this;
-    if (this.options.layer === null) {
-      console.error("Animation: missing layer");
-    }
-    AnimatorClass = this._animatorClass();
-    if (this.options.debug) {
-      console.log("Animation.start " + AnimatorClass.name, this.options.curveOptions);
-    }
-    this._animator = new AnimatorClass(this.options.curveOptions);
-    this._target = this.options.layer;
-    this._stateA = this._currentState();
-    this._stateB = {};
-    _ref = this.options.properties;
-    for (k in _ref) {
-      v = _ref[k];
-      if (_.isFunction(v)) {
-        v = v();
-      } else if (isRelativeProperty(v)) {
-        v = evaluateRelativeProperty(this._target, k, v);
-      }
-      if (this._stateA[k] !== v) {
-        this._stateB[k] = v;
-      }
-    }
-    if (_.keys(this._stateA).length === 0) {
-      console.warn("Animation: nothing to animate, no animatable properties");
-      return false;
-    }
-    if (_.isEqual(this._stateA, this._stateB)) {
-      console.warn("Animation: nothing to animate, all properties are equal to what it is now");
-      return false;
-    }
-    _ref1 = this._target.animations();
-    for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-      runningAnimation = _ref1[_i];
-      _ref2 = _.keys(runningAnimation._stateA);
-      for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
-        key = _ref2[_j];
-        if (this._stateA.hasOwnProperty(key)) {
-          console.warn("Animation: property " + key + " is already being animated for this layer by another animation, so we bail");
-          return false;
-        }
-      }
-    }
-    if (this.options.debug) {
-      console.log("Animation.start");
-      _ref3 = this._stateB;
-      for (k in _ref3) {
-        v = _ref3[k];
-        console.log("\t" + k + ": " + this._stateA[k] + " -> " + this._stateB[k]);
-      }
-    }
-    if (this._repeatCounter > 0) {
-      this.once("end", function() {
-        var _ref4;
-        _ref4 = _this._stateA;
-        for (k in _ref4) {
-          v = _ref4[k];
-          _this._target[k] = v;
-        }
-        _this._repeatCounter--;
-        return _this.start();
-      });
-    }
-    if (this.options.delay) {
-      Utils.delay(this.options.delay, this._start);
-    } else {
-      this._start();
-    }
-    return true;
-  };
-
-  Animation.prototype.stop = function(emit) {
-    if (emit == null) {
-      emit = true;
-    }
-    this.options.layer._context._animationList = _.without(this.options.layer._context._animationList, this);
-    if (emit) {
-      this.emit("stop");
-    }
-    return Framer.Loop.off("update", this._update);
-  };
-
-  Animation.prototype.reverse = function() {
-    var animation, options;
-    options = _.clone(this.options);
-    options.properties = this._originalState;
-    animation = new Animation(options);
-    return animation;
-  };
-
-  Animation.prototype.copy = function() {
-    return new Animation(_.clone(this.options));
-  };
-
-  Animation.prototype.revert = function() {
-    return this.reverse();
-  };
-
-  Animation.prototype.inverse = function() {
-    return this.reverse();
-  };
-
-  Animation.prototype.invert = function() {
-    return this.reverse();
-  };
-
-  Animation.prototype.emit = function(event) {
-    Animation.__super__.emit.apply(this, arguments);
-    return this.options.layer.emit(event, this);
-  };
-
-  Animation.prototype._start = function() {
-    this.options.layer._context._animationList.push(this);
-    this.emit("start");
-    return Framer.Loop.on("update", this._update);
-  };
-
-  Animation.prototype._update = function(delta) {
-    var emit;
-    if (this._animator.finished()) {
-      this._updateValue(1);
-      this.stop(emit = false);
-      this.emit("end");
-      return this.emit("stop");
-    } else {
-      return this._updateValue(this._animator.next(delta));
-    }
-  };
-
-  Animation.prototype._updateValue = function(value) {
-    var k, v, _ref;
-    _ref = this._stateB;
-    for (k in _ref) {
-      v = _ref[k];
-      this._target[k] = Utils.mapRange(value, 0, 1, this._stateA[k], this._stateB[k]);
-    }
-  };
-
   Animation.prototype._filterAnimatableProperties = function(properties) {
     var animatableProperties, k, v;
     animatableProperties = {};
     for (k in properties) {
       v = properties[k];
-      if (_.isNumber(v) || _.isFunction(v) || isRelativeProperty(v)) {
+      if (_.isNumber(v) || isRelativeProperty(v)) {
         animatableProperties[k] = v;
       }
     }
@@ -303,75 +165,196 @@ exports.Animation = (function(_super) {
     }
   };
 
+  Animation.prototype.start = function() {
+    var AnimatorClass, k, start, stateA, stateB, target, v, _ref,
+      _this = this;
+    if (this.options.layer === null) {
+      console.error("Animation: missing layer");
+    }
+    AnimatorClass = this._animatorClass();
+    if (this.options.debug) {
+      console.log("Animation.start " + AnimatorClass.name, this.options.curveOptions);
+    }
+    this._animator = new AnimatorClass(this.options.curveOptions);
+    target = this.options.layer;
+    stateA = this._currentState();
+    stateB = {};
+    _ref = this.options.properties;
+    for (k in _ref) {
+      v = _ref[k];
+      if (isRelativeProperty(v)) {
+        v = evaluateRelativeProperty(target, k, v);
+      }
+      if (stateA[k] !== v) {
+        stateB[k] = v;
+      }
+    }
+    if (_.isEqual(stateA, stateB)) {
+      console.warn("Nothing to animate");
+    }
+    if (this.options.debug) {
+      console.log("Animation.start");
+      for (k in stateB) {
+        v = stateB[k];
+        console.log("\t" + k + ": " + stateA[k] + " -> " + stateB[k]);
+      }
+    }
+    this._animator.on("start", function() {
+      return _this.emit("start");
+    });
+    this._animator.on("stop", function() {
+      return _this.emit("stop");
+    });
+    this._animator.on("end", function() {
+      return _this.emit("end");
+    });
+    if (this._repeatCounter > 0) {
+      this._animator.on("end", function() {
+        for (k in stateA) {
+          v = stateA[k];
+          target[k] = v;
+        }
+        _this._repeatCounter--;
+        return _this.start();
+      });
+    }
+    this._animator.on("tick", function(value) {
+      for (k in stateB) {
+        v = stateB[k];
+        target[k] = Utils.mapRange(value, 0, 1, stateA[k], stateB[k]);
+      }
+    });
+    start = function() {
+      _runningAnimations.push(_this);
+      return _this._animator.start();
+    };
+    if (this.options.delay) {
+      return Utils.delay(this.options.delay, start);
+    } else {
+      return start();
+    }
+  };
+
+  Animation.prototype.stop = function() {
+    var _ref;
+    if ((_ref = this._animator) != null) {
+      _ref.stop();
+    }
+    return _runningAnimations = _.without(_runningAnimations, this);
+  };
+
+  Animation.prototype.reverse = function() {
+    var animation, options;
+    options = _.clone(this.options);
+    options.properties = this._originalState;
+    animation = new Animation(options);
+    return animation;
+  };
+
+  Animation.prototype.revert = function() {
+    return this.reverse();
+  };
+
+  Animation.prototype.inverse = function() {
+    return this.reverse();
+  };
+
+  Animation.prototype.invert = function() {
+    return this.reverse();
+  };
+
+  Animation.prototype.emit = function(event) {
+    Animation.__super__.emit.apply(this, arguments);
+    return this.options.layer.emit(event, this);
+  };
+
   return Animation;
 
 })(EventEmitter);
 
 
-},{"./Animators/BezierCurveAnimator":5,"./Animators/LinearAnimator":6,"./Animators/SpringDHOAnimator":7,"./Animators/SpringRK4Animator":8,"./Config":12,"./Defaults":15,"./EventEmitter":17,"./Frame":23,"./Underscore":32,"./Utils":33}],2:[function(require,module,exports){
-var AnimationGroup, EventEmitter, _,
-  __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+},{"./Animators/BezierCurveAnimator":4,"./Animators/LinearAnimator":5,"./Animators/SpringDHOAnimator":6,"./Animators/SpringRK4Animator":7,"./Config":11,"./Defaults":13,"./EventEmitter":14,"./Frame":18,"./Underscore":28,"./Utils":29}],2:[function(require,module,exports){
+var AnimationLoop, AnimationLoopIndexKey, Config, EventEmitter, Utils, _;
 
 _ = require("./Underscore")._;
 
+Utils = require("./Utils");
+
+Config = require("./Config").Config;
+
 EventEmitter = require("./EventEmitter").EventEmitter;
 
-AnimationGroup = (function(_super) {
-  __extends(AnimationGroup, _super);
+AnimationLoopIndexKey = "_animationLoopIndex";
 
-  function AnimationGroup(animations) {
-    if (animations == null) {
-      animations = [];
+AnimationLoop = {
+  debug: false,
+  _animators: [],
+  _running: false,
+  _frameCounter: 0,
+  _sessionTime: 0,
+  _start: function() {
+    if (AnimationLoop._running) {
+      return;
     }
-    this.setAnimations(animations);
-    this._currentAnimation = null;
-  }
-
-  AnimationGroup.prototype.setAnimations = function(animations) {
-    return this._animations = _.map(animations, function(animation) {
-      return animation.copy();
-    });
-  };
-
-  AnimationGroup.prototype.start = function() {
-    var _this = this;
-    this.emit("start");
-    _.map(this._animations, function(animation, index) {
-      var nextAnimation;
-      nextAnimation = _this._animations[index + 1];
-      if (nextAnimation) {
-        return animation.on(Events.AnimationEnd, function() {
-          nextAnimation.start();
-          return _this._currentAnimation = animation;
-        });
-      } else {
-        return animation.on(Events.AnimationEnd, function() {
-          _this.emit("end");
-          return _this._currentAnimation = null;
-        });
+    if (!AnimationLoop._animators.length) {
+      return;
+    }
+    AnimationLoop._running = true;
+    AnimationLoop._time = Utils.getTime();
+    AnimationLoop._sessionTime = 0;
+    return window.requestAnimationFrame(AnimationLoop._tick);
+  },
+  _stop: function() {
+    return AnimationLoop._running = false;
+  },
+  _tick: function() {
+    var animator, delta, removeAnimators, time, _i, _j, _len, _len1, _ref;
+    if (!AnimationLoop._animators.length) {
+      return AnimationLoop._stop();
+    }
+    AnimationLoop._frameCounter++;
+    time = Utils.getTime();
+    delta = time - AnimationLoop._time;
+    AnimationLoop._sessionTime += delta;
+    removeAnimators = [];
+    _ref = AnimationLoop._animators;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      animator = _ref[_i];
+      animator.emit("tick", animator.next(delta));
+      if (animator.finished()) {
+        animator.emit("tick", 1);
+        removeAnimators.push(animator);
       }
-    });
-    return this._animations[0].start();
-  };
+    }
+    AnimationLoop._time = time;
+    for (_j = 0, _len1 = removeAnimators.length; _j < _len1; _j++) {
+      animator = removeAnimators[_j];
+      AnimationLoop.remove(animator);
+      animator.emit("end");
+    }
+    window.requestAnimationFrame(AnimationLoop._tick);
+  },
+  add: function(animator) {
+    if (animator.hasOwnProperty(AnimationLoopIndexKey)) {
+      return;
+    }
+    animator[AnimationLoopIndexKey] = AnimationLoop._animators.push(animator);
+    animator.emit("start");
+    return AnimationLoop._start();
+  },
+  remove: function(animator) {
+    AnimationLoop._animators = _.without(AnimationLoop._animators, animator);
+    return animator.emit("stop");
+  }
+};
 
-  AnimationGroup.prototype.stop = function() {
-    var _ref;
-    return (_ref = this._currentAnimation) != null ? _ref.stop() : void 0;
-  };
-
-  return AnimationGroup;
-
-})(EventEmitter);
+exports.AnimationLoop = AnimationLoop;
 
 
-},{"./EventEmitter":17,"./Underscore":32}],3:[function(require,module,exports){
-var Config, EventEmitter, Utils, getTime, _,
-  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+},{"./Config":11,"./EventEmitter":14,"./Underscore":28,"./Utils":29}],3:[function(require,module,exports){
+var AnimationLoop, Config, EventEmitter, Utils,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
-_ = require("./Underscore")._;
 
 Utils = require("./Utils");
 
@@ -379,59 +362,13 @@ Config = require("./Config").Config;
 
 EventEmitter = require("./EventEmitter").EventEmitter;
 
-if (window.performance) {
-  getTime = function() {
-    return window.performance.now();
-  };
-} else {
-  getTime = function() {
-    return Date.now();
-  };
-}
+AnimationLoop = require("./AnimationLoop").AnimationLoop;
 
-exports.AnimationLoop = (function(_super) {
-  __extends(AnimationLoop, _super);
+exports.Animator = (function(_super) {
+  __extends(Animator, _super);
 
-  function AnimationLoop() {
-    this.start = __bind(this.start, this);
-    this._delta = 1 / 60;
-  }
-
-  AnimationLoop.prototype.start = function() {
-    var animationLoop, tick, _timestamp;
-    animationLoop = this;
-    _timestamp = getTime();
-    tick = function(timestamp) {
-      var delta;
-      window.requestAnimationFrame(tick);
-      if (animationLoop._delta) {
-        delta = animationLoop._delta;
-      } else {
-        timestamp = getTime();
-        delta = (timestamp - _timestamp) / 1000;
-        _timestamp = timestamp;
-      }
-      animationLoop.emit("update", delta);
-      animationLoop.emit("render", delta);
-      return _timestamp = timestamp;
-    };
-    return window.requestAnimationFrame(tick);
-  };
-
-  return AnimationLoop;
-
-})(EventEmitter);
-
-
-},{"./Config":12,"./EventEmitter":17,"./Underscore":32,"./Utils":33}],4:[function(require,module,exports){
-var Config, Utils;
-
-Utils = require("./Utils");
-
-Config = require("./Config").Config;
-
-exports.Animator = (function() {
   "The animator class is a very simple class that\n	- Takes a set of input values at setup({input values})\n	- Emits an output value for progress (0 -> 1) in value(progress)";
+
   function Animator(options) {
     if (options == null) {
       options = {};
@@ -451,12 +388,20 @@ exports.Animator = (function() {
     throw Error("Not implemented");
   };
 
+  Animator.prototype.start = function() {
+    return AnimationLoop.add(this);
+  };
+
+  Animator.prototype.stop = function() {
+    return AnimationLoop.remove(this);
+  };
+
   return Animator;
 
-})();
+})(EventEmitter);
 
 
-},{"./Config":12,"./Utils":33}],5:[function(require,module,exports){
+},{"./AnimationLoop":2,"./Config":11,"./EventEmitter":14,"./Utils":29}],4:[function(require,module,exports){
 var Animator, BezierCurveDefaults, UnitBezier, Utils, _, _ref,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -596,7 +541,7 @@ UnitBezier = (function() {
 })();
 
 
-},{"../Animator":4,"../Underscore":32,"../Utils":33}],6:[function(require,module,exports){
+},{"../Animator":3,"../Underscore":28,"../Utils":29}],5:[function(require,module,exports){
 var Animator, Utils, _ref,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -637,7 +582,7 @@ exports.LinearAnimator = (function(_super) {
 })(Animator);
 
 
-},{"../Animator":4,"../Utils":33}],7:[function(require,module,exports){
+},{"../Animator":3,"../Utils":29}],6:[function(require,module,exports){
 var Animator, Utils, _ref,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
@@ -695,7 +640,7 @@ exports.SpringDHOAnimator = (function(_super) {
 })(Animator);
 
 
-},{"../Animator":4,"../Utils":33}],8:[function(require,module,exports){
+},{"../Animator":3,"../Utils":29}],7:[function(require,module,exports){
 var Animator, Utils, springAccelerationForState, springEvaluateState, springEvaluateStateWithDerivative, springIntegrateState, _ref,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
@@ -799,7 +744,7 @@ springIntegrateState = function(state, speed) {
 };
 
 
-},{"../Animator":4,"../Utils":33}],9:[function(require,module,exports){
+},{"../Animator":3,"../Utils":29}],8:[function(require,module,exports){
 var Layer,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
@@ -824,32 +769,12 @@ exports.BackgroundLayer = (function(_super) {
     BackgroundLayer.__super__.constructor.call(this, options);
     this.sendToBack();
     this.layout();
-    this._context.eventManager.wrap(window).addEventListener("resize", this.layout);
+    Screen.on("resize", this.layout);
   }
 
   BackgroundLayer.prototype.layout = function() {
-    if (this.superLayer) {
-      return this.frame = {
-        x: 0,
-        y: 0,
-        width: this.superLayer.width,
-        height: this.superLayer.height
-      };
-    } else if (this._context._parentLayer) {
-      return this.frame = {
-        x: 0,
-        y: 0,
-        width: this._context._parentLayer.width,
-        height: this._context._parentLayer.height
-      };
-    } else {
-      return this.frame = {
-        x: 0,
-        y: 0,
-        width: window.innerWidth,
-        height: window.innerHeight
-      };
-    }
+    this.width = Screen.width;
+    return this.height = Screen.height;
   };
 
   return BackgroundLayer;
@@ -857,7 +782,7 @@ exports.BackgroundLayer = (function(_super) {
 })(Layer);
 
 
-},{"./Layer":26}],10:[function(require,module,exports){
+},{"./Layer":21}],9:[function(require,module,exports){
 var CounterKey, DefinedPropertiesKey, DefinedPropertiesValuesKey, EventEmitter, Utils, _,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
@@ -973,23 +898,24 @@ exports.BaseClass = (function(_super) {
   };
 
   function BaseClass(options) {
+    var _base,
+      _this = this;
+    if (options == null) {
+      options = {};
+    }
     this.toString = __bind(this.toString, this);
     this._getPropertyValue = __bind(this._getPropertyValue, this);
     this._setPropertyValue = __bind(this._setPropertyValue, this);
-    var descriptor, name, _base, _ref;
     BaseClass.__super__.constructor.apply(this, arguments);
-    this._context = typeof Framer !== "undefined" && Framer !== null ? Framer.CurrentContext : void 0;
     this[DefinedPropertiesValuesKey] = {};
     if ((_base = this.constructor)[CounterKey] == null) {
       _base[CounterKey] = 0;
     }
     this.constructor[CounterKey] += 1;
     this._id = this.constructor[CounterKey];
-    _ref = this.constructor[DefinedPropertiesKey];
-    for (name in _ref) {
-      descriptor = _ref[name];
-      this[name] = Utils.valueOrDefault(options != null ? options[name] : void 0, this._getPropertyDefaultValue(name));
-    }
+    _.map(this.constructor[DefinedPropertiesKey], function(descriptor, name) {
+      return _this[name] = Utils.valueOrDefault(options[name], _this._getPropertyDefaultValue(name));
+    });
   }
 
   return BaseClass;
@@ -997,7 +923,7 @@ exports.BaseClass = (function(_super) {
 })(EventEmitter);
 
 
-},{"./EventEmitter":17,"./Underscore":32,"./Utils":33}],11:[function(require,module,exports){
+},{"./EventEmitter":14,"./Underscore":28,"./Utils":29}],10:[function(require,module,exports){
 var CompatImageView, CompatLayer, CompatScrollView, CompatView, Layer, compatProperty, compatWarning, _ref,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -1107,162 +1033,74 @@ window.ScrollView = CompatScrollView;
 window.utils = window.Utils;
 
 
-},{"./Layer":26}],12:[function(require,module,exports){
-var FramerCSS, Utils;
+},{"./Layer":21}],11:[function(require,module,exports){
+var Utils;
 
 Utils = require("./Utils");
 
-FramerCSS = "body {\n	margin: 0;\n}\n\n.framerContext {	\n	position: absolute;\n	left: 0;\n	top: 0;\n	right: 0;\n	bottom: 0;\n	pointer-events: none;\n	overflow: hidden;\n	-webkit-perspective: 1000;\n}\n\n.framerLayer {\n	display: block;\n	position: absolute;\n	background-repeat: no-repeat;\n	background-size: cover;\n	-webkit-overflow-scrolling: touch;\n	-webkit-box-sizing: border-box;\n	-webkit-user-select: none;\n}\n\n.framerLayer input,\n.framerLayer textarea,\n.framerLayer select,\n.framerLayer option\n{\n	pointer-events: auto;\n	-webkit-user-select: auto;\n}\n\n.framerDebug {\n	padding: 6px;\n	color: #fff;\n	font: 10px/1em Monaco;\n}\n";
-
-Utils.domComplete(function() {
-  return Utils.insertCSS(FramerCSS);
-});
-
-
-},{"./Utils":33}],13:[function(require,module,exports){
-var Config, Counter, EventManager, Utils, _;
-
-Utils = require("./Utils");
-
-_ = require("./Underscore")._;
-
-Config = require("./Config").Config;
-
-EventManager = require("./EventManager").EventManager;
-
-Counter = 1;
-
-exports.Context = (function() {
-  function Context(options) {
-    if (options == null) {
-      options = {};
-    }
-    Counter++;
-    options = Utils.setDefaultProperties(options, {
-      contextName: null,
-      parentLayer: null,
-      name: null
-    });
-    if (!options.name) {
-      throw Error("Contexts need a name");
-    }
-    this._parentLayer = options.parentLayer;
-    this._name = options.name;
-    this.reset();
+exports.Config = {
+  targetFPS: 60,
+  rootBaseCSS: {
+    "-webkit-perspective": 1000,
+    "position": "absolute",
+    "left": 0,
+    "top": 0,
+    "right": 0,
+    "bottom": 0
+  },
+  layerBaseCSS: {
+    "display": "block",
+    "position": "absolute",
+    "-webkit-box-sizing": "border-box",
+    "-webkit-user-select": "none",
+    "background-repeat": "no-repeat",
+    "background-size": "cover",
+    "-webkit-overflow-scrolling": "touch"
   }
-
-  Context.prototype.reset = function() {
-    var animation, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
-    if ((_ref = this.eventManager) != null) {
-      _ref.reset();
-    }
-    this.eventManager = new EventManager;
-    if ((_ref1 = this._rootElement) != null) {
-      if ((_ref2 = _ref1.parentNode) != null) {
-        if (typeof _ref2.removeChild === "function") {
-          _ref2.removeChild(this._rootElement);
-        }
-      }
-    }
-    this._rootElement = this._createRootElement();
-    if ((_ref3 = this._delayTimers) != null) {
-      _ref3.map(function(timer) {
-        return window.clearTimeout(timer);
-      });
-    }
-    if ((_ref4 = this._delayIntervals) != null) {
-      _ref4.map(function(timer) {
-        return window.clearInterval(timer);
-      });
-    }
-    if (this._animationList) {
-      _ref5 = this._animationList;
-      for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-        animation = _ref5[_i];
-        animation.stop(false);
-      }
-    }
-    this._layerList = [];
-    this._animationList = [];
-    this._delayTimers = [];
-    return this._delayIntervals = [];
-  };
-
-  Context.prototype.getRootElement = function() {
-    return this._rootElement;
-  };
-
-  Context.prototype.getLayers = function() {
-    return _.clone(this._layerList);
-  };
-
-  Context.prototype._createRootElement = function() {
-    var element, parentElement, _ref;
-    element = document.createElement("div");
-    element.id = "FramerContextRoot-" + this._name;
-    element.classList.add("framerContext");
-    parentElement = (_ref = this._parentLayer) != null ? _ref._element : void 0;
-    Framer.Loop.once("render", function() {
-      if (parentElement == null) {
-        parentElement = document.body;
-      }
-      return parentElement.appendChild(element);
-    });
-    return element;
-  };
-
-  Context.prototype.run = function(f) {
-    var previousContext;
-    previousContext = Framer.CurrentContext;
-    Framer.CurrentContext = this;
-    f();
-    return Framer.CurrentContext = previousContext;
-  };
-
-  return Context;
-
-})();
+};
 
 
-},{"./Config":12,"./EventManager":18,"./Underscore":32,"./Utils":33}],14:[function(require,module,exports){
-var Context, EventKeys, Utils, errorWarning, hideDebug, showDebug, toggleDebug, _debugStyle, _errorContext, _errorShown;
+},{"./Utils":29}],12:[function(require,module,exports){
+var EventKeys, Utils, createDebugLayer, errorWarning, hideDebug, showDebug, toggleDebug, _debugLayers, _errorWarningLayer;
 
 Utils = require("./Utils");
 
-Context = require("./Context").Context;
+_debugLayers = null;
 
-_debugStyle = {
-  border: "1px solid rgba(50,150,200,.35)",
-  backgroundColor: "rgba(50,150,200,.35)"
+createDebugLayer = function(layer) {
+  var overLayer;
+  overLayer = new Layer({
+    frame: layer.screenFrame(),
+    backgroundColor: "rgba(50,150,200,.35)"
+  });
+  overLayer.style = {
+    textAlign: "center",
+    color: "white",
+    font: "10px/1em Monaco",
+    lineHeight: "" + (overLayer.height + 1) + "px",
+    boxShadow: "inset 0 0 0 1px rgba(255,255,255,.5)"
+  };
+  overLayer.html = layer.name || layer.id;
+  overLayer.on(Events.Click, function(event, layer) {
+    layer.scale = 0.8;
+    return layer.animate({
+      properties: {
+        scale: 1
+      },
+      curve: "spring(1000,10,0)"
+    });
+  });
+  return overLayer;
 };
 
 showDebug = function() {
-  var layer, _i, _len, _ref, _results;
-  _ref = Framer.CurrentContext.getLayers();
-  _results = [];
-  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-    layer = _ref[_i];
-    layer._debugStyle = _.pick(layer.style, _.keys(_debugStyle));
-    layer.style = _debugStyle;
-    layer._debugElement = document.createElement("div");
-    layer._debugElement.innerHTML = layer.name || layer.id;
-    layer._debugElement.classList.add("framerDebug");
-    _results.push(layer._element.appendChild(layer._debugElement));
-  }
-  return _results;
+  return _debugLayers = Layer.Layers().map(createDebugLayer);
 };
 
 hideDebug = function() {
-  var layer, _i, _len, _ref, _results;
-  _ref = Framer.CurrentContext.getLayers();
-  _results = [];
-  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-    layer = _ref[_i];
-    layer.style = layer._debugStyle;
-    layer._debugElement.parentElement.removeChild(layer._debugElement);
-    _results.push(layer._debugElement = null);
-  }
-  return _results;
+  return _debugLayers.map(function(layer) {
+    return layer.destroy();
+  });
 };
 
 toggleDebug = Utils.toggle(showDebug, hideDebug);
@@ -1278,23 +1116,13 @@ window.document.onkeyup = function(event) {
   }
 };
 
-_errorContext = null;
+_errorWarningLayer = null;
 
-_errorShown = false;
-
-errorWarning = function(event) {
-  var layer, _errorWarningLayer;
-  if (!_errorContext) {
-    _errorContext = new Context({
-      name: "Error"
-    });
-  }
-  print(event.message);
-  console.log(event);
-  if (_errorShown) {
+errorWarning = function() {
+  var layer;
+  if (_errorWarningLayer) {
     return;
   }
-  _errorShown = true;
   layer = new Layer({
     x: 20,
     y: -50,
@@ -1332,8 +1160,10 @@ errorWarning = function(event) {
   return _errorWarningLayer = layer;
 };
 
+window.onerror = errorWarning;
 
-},{"./Context":13,"./Utils":33}],15:[function(require,module,exports){
+
+},{"./Utils":29}],13:[function(require,module,exports){
 var Originals, Utils, _;
 
 _ = require("./Underscore")._;
@@ -1349,18 +1179,6 @@ Originals = {
   Animation: {
     curve: "linear",
     time: 1
-  },
-  DeviceView: {
-    fullScreen: false,
-    padding: 50,
-    deviceType: "iphone-5s-spacegray",
-    deviceZoom: "fit",
-    contentZoom: 1,
-    orientation: "portrait",
-    keyboard: false,
-    animationOptions: {
-      curve: "spring(400,40,0)"
-    }
   }
 };
 
@@ -1381,888 +1199,68 @@ exports.Defaults = {
     }
     return options;
   },
-  setup: function() {
-    var className, classValues, k, v, _ref;
-    if (window.FramerDefaults) {
-      _ref = window.FramerDefaults;
-      for (className in _ref) {
-        classValues = _ref[className];
-        for (k in classValues) {
-          v = classValues[k];
-          Originals[className][k] = v;
-        }
-      }
-    }
-    return exports.Defaults.reset();
-  },
   reset: function() {
     return window.Framer.Defaults = _.clone(Originals);
   }
 };
 
 
-},{"./Underscore":32,"./Utils":33}],16:[function(require,module,exports){
-var AppleWatchDevice, BaseClass, Defaults, DeviceViewDefaultDevice, Devices, Events, Layer, Nexus5BaseDevice, Nexus5BaseDeviceHand, Utils, iPadAirBaseDevice, iPadAirBaseDeviceHand, iPadMiniBaseDevice, iPadMiniBaseDeviceHand, iPhone5BaseDevice, iPhone5BaseDeviceHand, iPhone5CBaseDevice, iPhone5CBaseDeviceHand, iPhone6BaseDevice, iPhone6BaseDeviceHand, _,
-  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
-  __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
-Utils = require("./Utils");
+},{"./Underscore":28,"./Utils":29}],14:[function(require,module,exports){
+var EventEmitterEventsKey, _,
+  __slice = [].slice;
 
 _ = require("./Underscore")._;
 
-DeviceViewDefaultDevice = "iphone-6-silver";
+EventEmitterEventsKey = "_events";
 
-BaseClass = require("./BaseClass").BaseClass;
-
-Layer = require("./Layer").Layer;
-
-Defaults = require("./Defaults").Defaults;
-
-Events = require("./Events").Events;
-
-/*
-
-Device._setup()
-Device._update()
-Device._setupContext()
-
-Device.fullScreen bool
-Device.deviceType str
-Device.padding int
-
-Device.orientation(orientation:float)
-Device.orientationName landscape|portrait|unknown
-Device.rotateLeft()
-Device.rotateRight()
-
-Device.setDeviceScale(zoom:float, animate:bool)
-Device.setContentScale(zoom:float, animate:bool)
-
-Device.keyboard bool
-Device.setKeyboard(visible:bool, animate:bool)
-Device.showKeyboard(animate:bool)
-Device.hideKeyboard(animate:bool)
-Device.toggleKeyboard(animate:bool)
-
-
-# Events
-Events.DeviceTypeDidChange
-Events.DeviceFullScreenDidChange
-Events.DeviceKeyboardWillShow
-Events.DeviceKeyboardDidShow
-*/
-
-
-exports.DeviceView = (function(_super) {
-  __extends(DeviceView, _super);
-
-  function DeviceView(options) {
-    var defaults;
-    if (options == null) {
-      options = {};
-    }
-    this._animateKeyboard = __bind(this._animateKeyboard, this);
-    this._updateDeviceImage = __bind(this._updateDeviceImage, this);
-    this._update = __bind(this._update, this);
-    defaults = Defaults.getDefaults("DeviceView", options);
-    this._setup();
-    this.animationOptions = defaults.animationOptions;
-    this.deviceType = defaults.deviceType;
-    _.extend(this, Utils.setDefaultProperties(options, defaults));
+exports.EventEmitter = (function() {
+  function EventEmitter() {
+    this[EventEmitterEventsKey] = {};
   }
 
-  DeviceView.prototype._setup = function() {
-    var layer, _i, _len, _ref, _results,
-      _this = this;
-    if (this._setupDone) {
+  EventEmitter.prototype._eventCheck = function(event, method) {
+    if (!event) {
+      return console.warn("" + this.constructor.name + "." + method + " missing event (like 'click')");
+    }
+  };
+
+  EventEmitter.prototype.emit = function() {
+    var args, event, listener, _i, _len, _ref, _ref1;
+    event = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+    if (!((_ref = this[EventEmitterEventsKey]) != null ? _ref[event] : void 0)) {
       return;
     }
-    this._setupDone = true;
-    this.background = new Layer;
-    this.background.clip = true;
-    this.background.backgroundColor = "transparent";
-    this.background.classList.add("DeviceBackground");
-    this.phone = new Layer;
-    this.screen = new Layer({
-      superLayer: this.phone
-    });
-    this.viewport = new Layer({
-      superLayer: this.screen
-    });
-    this.content = new Layer({
-      superLayer: this.viewport
-    });
-    this.phone.backgroundColor = "transparent";
-    this.phone.classList.add("DevicePhone");
-    this.screen.backgroundColor = "transparent";
-    this.screen.classList.add("DeviceScreen");
-    this.viewport.backgroundColor = "transparent";
-    this.viewport.classList.add("DeviceViewPort");
-    this.content.backgroundColor = "transparent";
-    this.content.classList.add("DeviceContent");
-    this.content.originX = 0;
-    this.content.originY = 0;
-    this.keyboardLayer = new Layer({
-      superLayer: this.viewport
-    });
-    this.keyboardLayer.on("click", function() {
-      return _this.toggleKeyboard();
-    });
-    this.keyboardLayer.classList.add("DeviceKeyboard");
-    this.keyboardLayer.backgroundColor = "transparent";
-    Framer.CurrentContext.eventManager.wrap(window).addEventListener("resize", this._update);
-    _ref = [this.background, this.phone, this.viewport, this.content, this.screen];
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      layer = _ref[_i];
-      _results.push(layer.on("touchmove", function(event) {
-        return event.preventDefault();
-      }));
-    }
-    return _results;
-  };
-
-  DeviceView.prototype._update = function() {
-    var backgroundOverlap, contentScaleFactor, height, layer, width, _i, _len, _ref, _ref1;
-    contentScaleFactor = this.contentScale;
-    if (contentScaleFactor > 1) {
-      contentScaleFactor = 1;
-    }
-    if (this._shouldRenderFullScreen()) {
-      _ref = [this.background, this.phone, this.viewport, this.content, this.screen];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        layer = _ref[_i];
-        layer.x = layer.y = 0;
-        layer.width = window.innerWidth / contentScaleFactor;
-        layer.height = window.innerHeight / contentScaleFactor;
-        layer.scale = 1;
-      }
-      this.content.scale = contentScaleFactor;
-      return this._positionKeyboard();
-    } else {
-      backgroundOverlap = 100;
-      this.background.x = 0 - backgroundOverlap;
-      this.background.y = 0 - backgroundOverlap;
-      this.background.width = window.innerWidth + (2 * backgroundOverlap);
-      this.background.height = window.innerHeight + (2 * backgroundOverlap);
-      this.phone.scale = this._calculatePhoneScale();
-      this.phone.center();
-      _ref1 = this._getOrientationDimensions(this._device.screenWidth / contentScaleFactor, this._device.screenHeight / contentScaleFactor), width = _ref1[0], height = _ref1[1];
-      this.screen.width = this._device.screenWidth;
-      this.screen.height = this._device.screenHeight;
-      this.viewport.width = this.content.width = width;
-      this.viewport.height = this.content.height = height;
-      return this.screen.center();
+    _ref1 = this[EventEmitterEventsKey][event];
+    for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+      listener = _ref1[_i];
+      listener.apply(null, args);
     }
   };
 
-  DeviceView.prototype._shouldRenderFullScreen = function() {
-    if (!this._device) {
-      return true;
-    }
-    if (this.fullScreen === true) {
-      return true;
-    }
-    if (this.deviceType === "fullscreen") {
-      return true;
-    }
-    if (Utils.deviceType() === this._device.deviceType) {
-      return true;
-    }
-    return false;
-  };
-
-  DeviceView.prototype._deviceImageUrl = function(name) {
-    var resourceUrl;
-    if (!name) {
-      return null;
-    }
-    if (Utils.isFramerStudio() && window.FramerStudioInfo) {
-      resourceUrl = window.FramerStudioInfo.deviceImagesUrl;
-    } else {
-      resourceUrl = "http://resources.framerjs.com/static/DeviceResources";
-    }
-    if (Utils.isJP2Supported()) {
-      return "" + resourceUrl + "/" + (name.replace(".png", ".jp2"));
-    } else {
-      return "" + resourceUrl + "/" + name;
-    }
-  };
-
-  DeviceView.prototype.setupContext = function() {
-    this._context = new Framer.Context({
-      parentLayer: this.content,
-      name: "Device"
-    });
-    return Framer.CurrentContext = this._context;
-  };
-
-  DeviceView.define("fullScreen", {
-    get: function() {
-      return this._fullScreen;
-    },
-    set: function(fullScreen) {
-      return this._setFullScreen(fullScreen);
-    }
-  });
-
-  DeviceView.prototype._setFullScreen = function(fullScreen) {
-    if (this._deviceType === "fullscreen") {
-      return;
-    }
-    if (!_.isBool(fullScreen)) {
-      return;
-    }
-    if (fullScreen === this._fullScreen) {
-      return;
-    }
-    this._fullScreen = fullScreen;
-    if (fullScreen === true) {
-      this.phone.image = "";
-    } else {
-      this._updateDeviceImage();
-    }
-    this._update();
-    this.keyboard = false;
-    this._positionKeyboard();
-    return this.emit("change:fullScreen");
-  };
-
-  DeviceView.define("deviceType", {
-    get: function() {
-      return this._deviceType;
-    },
-    set: function(deviceType) {
-      var device;
-      if (deviceType === this._deviceType) {
-        return;
-      }
-      device = null;
-      if (_.isString(deviceType)) {
-        device = Devices[deviceType.toLowerCase()];
-      }
-      if (!device) {
-        throw Error("No device named " + deviceType + ". Options are: " + (_.keys(Devices)));
-      }
-      if (this._device === device) {
-        return;
-      }
-      this._device = device;
-      this._deviceType = deviceType;
-      this.fullscreen = false;
-      this._updateDeviceImage();
-      this._update();
-      this.keyboard = false;
-      this._positionKeyboard();
-      return this.emit("change:deviceType");
-    }
-  });
-
-  DeviceView.prototype._updateDeviceImage = function() {
-    if (this._shouldRenderFullScreen()) {
-      return this.phone.image = "";
-    } else {
-      this.phone._cacheImage = true;
-      this.phone.image = this._deviceImageUrl(this._device.deviceImage);
-      this.phone.width = this._device.deviceImageWidth;
-      return this.phone.height = this._device.deviceImageHeight;
-    }
-  };
-
-  DeviceView.define("deviceScale", {
-    get: function() {
-      if (this._shouldRenderFullScreen()) {
-        return 1;
-      }
-      return this._deviceScale || 1;
-    },
-    set: function(deviceScale) {
-      return this.setDeviceScale(deviceScale, false);
-    }
-  });
-
-  DeviceView.prototype.setDeviceScale = function(deviceScale, animate) {
-    var phoneScale;
-    if (animate == null) {
-      animate = false;
-    }
-    if (deviceScale === "fit" || deviceScale < 0) {
-      deviceScale = "fit";
-    } else {
-      deviceScale = parseFloat(deviceScale);
-    }
-    if (deviceScale === this._deviceScale) {
-      return;
-    }
-    this._deviceScale = deviceScale;
-    if (this._shouldRenderFullScreen()) {
-      return;
-    }
-    if (deviceScale === "fit") {
-      phoneScale = this._calculatePhoneScale();
-    } else {
-      phoneScale = deviceScale;
-    }
-    this.phone.animateStop();
-    if (animate) {
-      this.phone.animate(_.extend(this.animationOptions, {
-        properties: {
-          scale: phoneScale
-        }
-      }));
-    } else {
-      this.phone.scale = phoneScale;
-      this.phone.center();
-    }
-    return this.emit("change:deviceScale");
-  };
-
-  DeviceView.prototype._calculatePhoneScale = function() {
-    var height, paddingOffset, phoneScale, width, _ref, _ref1;
-    if (this._deviceScale && this._deviceScale !== "fit") {
-      return this._deviceScale;
-    }
-    _ref = this._getOrientationDimensions(this.phone.width, this.phone.height), width = _ref[0], height = _ref[1];
-    paddingOffset = ((_ref1 = this._device) != null ? _ref1.paddingOffset : void 0) || 0;
-    phoneScale = _.min([(window.innerWidth - ((this.padding + paddingOffset) * 2)) / width, (window.innerHeight - ((this.padding + paddingOffset) * 2)) / height]);
-    return phoneScale;
-  };
-
-  DeviceView.define("contentScale", {
-    get: function() {
-      return this._contentScale || 1;
-    },
-    set: function(contentScale) {
-      return this.setContentScale(contentScale, false);
-    }
-  });
-
-  DeviceView.prototype.setContentScale = function(contentScale, animate) {
-    if (animate == null) {
-      animate = false;
-    }
-    contentScale = parseFloat(contentScale);
-    if (contentScale <= 0) {
-      return;
-    }
-    if (contentScale === this._contentScale) {
-      return;
-    }
-    this._contentScale = contentScale;
-    if (animate) {
-      this.content.animate(_.extend(this.animationOptions, {
-        properties: {
-          scale: this._contentScale
-        }
-      }));
-    } else {
-      this.content.scale = this._contentScale;
-    }
-    this._update();
-    return this.emit("change:contentScale");
-  };
-
-  DeviceView.define("orientation", {
-    get: function() {
-      return this._orientation || 0;
-    },
-    set: function(orientation) {
-      return this.setOrientation(orientation, false);
-    }
-  });
-
-  DeviceView.prototype.setOrientation = function(orientation, animate) {
-    var animation, contentProperties, height, phoneProperties, width, x, y, _hadKeyboard, _ref, _ref1,
-      _this = this;
-    if (animate == null) {
-      animate = false;
-    }
-    if (orientation === "portrait") {
-      orientation = 0;
-    }
-    if (orientation === "landscape") {
-      orientation = 90;
-    }
-    if (this._shouldRenderFullScreen()) {
-      return;
-    }
-    orientation = parseInt(orientation);
-    if (orientation !== 0 && orientation !== 90 && orientation !== (-90)) {
-      return;
-    }
-    if (orientation === this._orientation) {
-      return;
-    }
-    this._orientation = orientation;
-    phoneProperties = {
-      rotationZ: this._orientation,
-      scale: this._calculatePhoneScale()
-    };
-    _ref = this._getOrientationDimensions(this._device.screenWidth, this._device.screenHeight), width = _ref[0], height = _ref[1];
-    _ref1 = [(this.screen.width - width) / 2, (this.screen.height - height) / 2], x = _ref1[0], y = _ref1[1];
-    contentProperties = {
-      rotationZ: -this._orientation,
-      width: width,
-      height: height,
-      x: x,
-      y: y
-    };
-    _hadKeyboard = this.keyboard;
-    if (_hadKeyboard) {
-      this.hideKeyboard(false);
-    }
-    this.phone.animateStop();
-    this.viewport.animateStop();
-    if (animate) {
-      animation = this.phone.animate(_.extend(this.animationOptions, {
-        properties: phoneProperties
-      }));
-      this.viewport.animate(_.extend(this.animationOptions, {
-        properties: contentProperties
-      }));
-      if (_hadKeyboard) {
-        animation.on(Events.AnimationEnd, function() {
-          return _this.showKeyboard(true);
-        });
-      }
-    } else {
-      this.phone.properties = phoneProperties;
-      this.viewport.properties = contentProperties;
-      if (_hadKeyboard) {
-        this.showKeyboard(true);
-      }
-    }
-    this._renderKeyboard();
-    return this.emit("change:orientation");
-  };
-
-  DeviceView.prototype.isPortrait = function() {
-    return Math.abs(this._orientation) !== 90;
-  };
-
-  DeviceView.prototype.isLandscape = function() {
-    return !this.isPortrait();
-  };
-
-  DeviceView.define("orientationName", {
-    get: function() {
-      if (this.isPortrait()) {
-        return "portrait";
-      }
-      if (this.isLandscape()) {
-        return "landscape";
-      }
-    },
-    set: function(orientationName) {
-      return this.setOrientation(orientationName, false);
-    }
-  });
-
-  DeviceView.prototype.rotateLeft = function(animate) {
-    if (animate == null) {
-      animate = true;
-    }
-    if (this.orientation === 90) {
-      return;
-    }
-    return this.setOrientation(this.orientation + 90, animate);
-  };
-
-  DeviceView.prototype.rotateRight = function(animate) {
-    if (animate == null) {
-      animate = true;
-    }
-    if (this.orientation === -90) {
-      return;
-    }
-    return this.setOrientation(this.orientation - 90, animate);
-  };
-
-  DeviceView.prototype._getOrientationDimensions = function(width, height) {
-    if (this.isLandscape()) {
-      return [height, width];
-    } else {
-      return [width, height];
-    }
-  };
-
-  DeviceView.define("keyboard", {
-    get: function() {
-      return this._keyboard;
-    },
-    set: function(keyboard) {
-      return this.setKeyboard(keyboard, false);
-    }
-  });
-
-  DeviceView.prototype.setKeyboard = function(keyboard, animate) {
-    var _ref, _ref1,
-      _this = this;
-    if (animate == null) {
-      animate = false;
-    }
-    if (!this._device.hasOwnProperty("keyboards")) {
-      return;
-    }
-    if (_.isString(keyboard)) {
-      if ((_ref = keyboard.toLowerCase()) === "1" || _ref === "true") {
-        keyboard = true;
-      } else if ((_ref1 = keyboard.toLowerCase()) === "0" || _ref1 === "false") {
-        keyboard = false;
-      } else {
-        return;
-      }
-    }
-    if (!_.isBool(keyboard)) {
-      return;
-    }
-    if (keyboard === this._keyboard) {
-      return;
-    }
-    this._keyboard = keyboard;
-    this.emit("change:keyboard");
-    if (keyboard === true) {
-      this.emit("keyboard:show:start");
-      return this._animateKeyboard(this._keyboardShowY(), animate, function() {
-        return _this.emit("keyboard:show:end");
-      });
-    } else {
-      this.emit("keyboard:hide:start");
-      return this._animateKeyboard(this._keyboardHideY(), animate, function() {
-        return _this.emit("keyboard:hide:end");
-      });
-    }
-  };
-
-  DeviceView.prototype.showKeyboard = function(animate) {
-    if (animate == null) {
-      animate = true;
-    }
-    return this.setKeyboard(true, animate);
-  };
-
-  DeviceView.prototype.hideKeyboard = function(animate) {
-    if (animate == null) {
-      animate = true;
-    }
-    return this.setKeyboard(false, animate);
-  };
-
-  DeviceView.prototype.toggleKeyboard = function(animate) {
-    if (animate == null) {
-      animate = true;
-    }
-    return this.setKeyboard(!this.keyboard, animate);
-  };
-
-  DeviceView.prototype._renderKeyboard = function() {
-    if (!this._device.keyboards) {
-      return;
-    }
-    this.keyboardLayer.image = this._deviceImageUrl(this._device.keyboards[this.orientationName].image);
-    this.keyboardLayer.width = this._device.keyboards[this.orientationName].width;
-    return this.keyboardLayer.height = this._device.keyboards[this.orientationName].height;
-  };
-
-  DeviceView.prototype._positionKeyboard = function() {
-    this.keyboardLayer.centerX();
-    if (this.keyboard) {
-      return this._animateKeyboard(this._keyboardShowY(), false);
-    } else {
-      return this._animateKeyboard(this._keyboardHideY(), false);
-    }
-  };
-
-  DeviceView.prototype._animateKeyboard = function(y, animate, callback) {
-    var animation;
-    this.keyboardLayer.bringToFront();
-    this.keyboardLayer.animateStop();
-    if (animate === false) {
-      this.keyboardLayer.y = y;
-      return typeof callback === "function" ? callback() : void 0;
-    } else {
-      animation = this.keyboardLayer.animate(_.extend(this.animationOptions, {
-        properties: {
-          y: y
-        }
-      }));
-      return animation.on(Events.AnimationEnd, callback);
-    }
-  };
-
-  DeviceView.prototype._keyboardShowY = function() {
-    return this.viewport.height - this.keyboardLayer.height;
-  };
-
-  DeviceView.prototype._keyboardHideY = function() {
-    return this.viewport.height;
-  };
-
-  return DeviceView;
-
-})(BaseClass);
-
-iPhone6BaseDevice = {
-  deviceImageWidth: 870,
-  deviceImageHeight: 1738,
-  screenWidth: 750,
-  screenHeight: 1334,
-  deviceType: "phone"
-};
-
-iPhone6BaseDeviceHand = _.extend({}, iPhone6BaseDevice, {
-  deviceImageWidth: 1988,
-  deviceImageHeight: 2368,
-  paddingOffset: -150
-});
-
-iPhone5BaseDevice = {
-  deviceImageWidth: 780,
-  deviceImageHeight: 1608,
-  screenWidth: 640,
-  screenHeight: 1136,
-  deviceType: "phone"
-};
-
-iPhone5BaseDeviceHand = _.extend({}, iPhone5BaseDevice, {
-  deviceImageWidth: 1884,
-  deviceImageHeight: 2234,
-  paddingOffset: -200
-});
-
-iPhone5CBaseDevice = {
-  deviceImageWidth: 776,
-  deviceImageHeight: 1612,
-  screenWidth: 640,
-  screenHeight: 1136,
-  deviceType: "phone"
-};
-
-iPhone5CBaseDeviceHand = _.extend({}, iPhone5CBaseDevice, {
-  deviceImageWidth: 1894,
-  deviceImageHeight: 2244,
-  paddingOffset: -200
-});
-
-iPadMiniBaseDevice = {
-  deviceImageWidth: 872,
-  deviceImageHeight: 1292,
-  screenWidth: 768,
-  screenHeight: 1024,
-  deviceType: "tablet"
-};
-
-iPadMiniBaseDeviceHand = _.extend({}, iPadMiniBaseDevice, {
-  deviceImageWidth: 1380,
-  deviceImageHeight: 2072,
-  paddingOffset: -120
-});
-
-iPadAirBaseDevice = {
-  deviceImageWidth: 1769,
-  deviceImageHeight: 2509,
-  screenWidth: 1536,
-  screenHeight: 2048,
-  deviceType: "tablet"
-};
-
-iPadAirBaseDeviceHand = _.extend({}, iPadAirBaseDevice, {
-  deviceImageWidth: 4744,
-  deviceImageHeight: 4101,
-  paddingOffset: -120
-});
-
-Nexus5BaseDevice = {
-  deviceImageWidth: 1208,
-  deviceImageHeight: 2440,
-  screenWidth: 1080,
-  screenHeight: 1920,
-  deviceType: "phone"
-};
-
-Nexus5BaseDeviceHand = _.extend({}, Nexus5BaseDevice, {
-  deviceImageWidth: 2692,
-  deviceImageHeight: 2996,
-  paddingOffset: -120
-});
-
-AppleWatchDevice = {
-  deviceImageWidth: 472,
-  deviceImageHeight: 806,
-  screenWidth: 320,
-  screenHeight: 400
-};
-
-Devices = {
-  "fullscreen": {
-    name: "Fullscreen",
-    deviceType: "desktop"
-  },
-  "iphone-6-spacegray": _.extend({}, iPhone6BaseDevice, {
-    deviceImage: "iphone-6-spacegray.png"
-  }),
-  "iphone-6-spacegray-hand": _.extend({}, iPhone6BaseDeviceHand, {
-    deviceImage: "iphone-6-spacegray-hand.png"
-  }),
-  "iphone-6-silver": _.extend({}, iPhone6BaseDevice, {
-    deviceImage: "iphone-6-silver.png"
-  }),
-  "iphone-6-silver-hand": _.extend({}, iPhone6BaseDeviceHand, {
-    deviceImage: "iphone-6-silver-hand.png"
-  }),
-  "iphone-6-gold": _.extend({}, iPhone6BaseDevice, {
-    deviceImage: "iphone-6-gold.png"
-  }),
-  "iphone-6-gold-hand": _.extend({}, iPhone6BaseDeviceHand, {
-    deviceImage: "iphone-6-gold-hand.png"
-  }),
-  "iphone-5s-spacegray": _.extend({}, iPhone5BaseDevice, {
-    deviceImage: "iphone-5s-spacegray.png"
-  }),
-  "iphone-5s-spacegray-hand": _.extend({}, iPhone5BaseDeviceHand, {
-    deviceImage: "iphone-5s-spacegray-hand.png"
-  }),
-  "iphone-5s-silver": _.extend({}, iPhone5BaseDevice, {
-    deviceImage: "iphone-5s-silver.png"
-  }),
-  "iphone-5s-silver-hand": _.extend({}, iPhone5BaseDeviceHand, {
-    deviceImage: "iphone-5s-silver-hand.png"
-  }),
-  "iphone-5s-gold": _.extend({}, iPhone5BaseDevice, {
-    deviceImage: "iphone-5s-gold.png"
-  }),
-  "iphone-5s-gold-hand": _.extend({}, iPhone5BaseDeviceHand, {
-    deviceImage: "iphone-5s-gold-hand.png"
-  }),
-  "iphone-5c-green": _.extend({}, iPhone5CBaseDevice, {
-    deviceImage: "iphone-5c-green.png"
-  }),
-  "iphone-5c-green-hand": _.extend({}, iPhone5CBaseDeviceHand, {
-    deviceImage: "iphone-5c-green-hand.png"
-  }),
-  "iphone-5c-blue": _.extend({}, iPhone5CBaseDevice, {
-    deviceImage: "iphone-5c-blue.png"
-  }),
-  "iphone-5c-blue-hand": _.extend({}, iPhone5CBaseDeviceHand, {
-    deviceImage: "iphone-5c-blue-hand.png"
-  }),
-  "iphone-5c-pink": _.extend({}, iPhone5CBaseDevice, {
-    deviceImage: "iphone-5c-pink.png"
-  }),
-  "iphone-5c-pink-hand": _.extend({}, iPhone5CBaseDeviceHand, {
-    deviceImage: "iphone-5c-pink-hand.png"
-  }),
-  "iphone-5c-white": _.extend({}, iPhone5CBaseDevice, {
-    deviceImage: "iphone-5c-white.png"
-  }),
-  "iphone-5c-white-hand": _.extend({}, iPhone5CBaseDeviceHand, {
-    deviceImage: "iphone-5c-white-hand.png"
-  }),
-  "iphone-5c-yellow": _.extend({}, iPhone5CBaseDevice, {
-    deviceImage: "iphone-5c-yellow.png"
-  }),
-  "iphone-5c-yellow-hand": _.extend({}, iPhone5CBaseDeviceHand, {
-    deviceImage: "iphone-5c-yellow-hand.png"
-  }),
-  "ipad-mini-spacegray": _.extend({}, iPadMiniBaseDevice, {
-    deviceImage: "ipad-mini-spacegray.png"
-  }),
-  "ipad-mini-spacegray-hand": _.extend({}, iPadMiniBaseDeviceHand, {
-    deviceImage: "ipad-mini-spacegray-hand.png"
-  }),
-  "ipad-mini-silver": _.extend({}, iPadMiniBaseDevice, {
-    deviceImage: "ipad-mini-silver.png"
-  }),
-  "ipad-mini-silver-hand": _.extend({}, iPadMiniBaseDeviceHand, {
-    deviceImage: "ipad-mini-silver-hand.png"
-  }),
-  "ipad-air-spacegray": _.extend({}, iPadMiniBaseDevice, {
-    deviceImage: "ipad-air-spacegray.png"
-  }),
-  "ipad-air-spacegray-hand": _.extend({}, iPadMiniBaseDeviceHand, {
-    deviceImage: "ipad-air-spacegray-hand.png"
-  }),
-  "ipad-air-silver": _.extend({}, iPadMiniBaseDevice, {
-    deviceImage: "ipad-mini-silver.png"
-  }),
-  "ipad-air-silver-hand": _.extend({}, iPadMiniBaseDeviceHand, {
-    deviceImage: "ipad-mini-silver-hand.png"
-  }),
-  "nexus-5-black": _.extend({}, Nexus5BaseDevice, {
-    deviceImage: "nexus-5-black.png"
-  }),
-  "nexus-5-black-hand": _.extend({}, Nexus5BaseDeviceHand, {
-    deviceImage: "nexus-5-black-hand.png"
-  }),
-  "apple-watch": _.extend({}, AppleWatchDevice, {
-    deviceImage: "apple-watch.png"
-  }),
-  "apple-watch-sport": _.extend({}, AppleWatchDevice, {
-    deviceImage: "apple-watch-sport.png"
-  }),
-  "apple-watch-edition": _.extend({}, AppleWatchDevice, {
-    deviceImage: "apple-watch-edition.png"
-  })
-};
-
-exports.DeviceView.Devices = Devices;
-
-
-},{"./BaseClass":10,"./Defaults":15,"./Events":19,"./Layer":26,"./Underscore":32,"./Utils":33}],17:[function(require,module,exports){
-var EventEmitter;
-
-EventEmitter = require("eventemitter3").EventEmitter;
-
-exports.EventEmitter = EventEmitter;
-
-
-},{"eventemitter3":35}],18:[function(require,module,exports){
-var EventManagerElement, EventManagerIdCounter,
-  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
-
-EventManagerIdCounter = 0;
-
-EventManagerElement = (function() {
-  function EventManagerElement(element) {
-    this.element = element;
-    this._events = {};
-  }
-
-  EventManagerElement.prototype.addEventListener = function(eventName, listener) {
+  EventEmitter.prototype.addListener = function(event, listener) {
     var _base;
-    if ((_base = this._events)[eventName] == null) {
-      _base[eventName] = [];
+    this._eventCheck(event, "addListener");
+    if (this[EventEmitterEventsKey] == null) {
+      this[EventEmitterEventsKey] = {};
     }
-    this._events[eventName].push(listener);
-    return this.element.addEventListener(eventName, listener);
+    if ((_base = this[EventEmitterEventsKey])[event] == null) {
+      _base[event] = [];
+    }
+    return this[EventEmitterEventsKey][event].push(listener);
   };
 
-  EventManagerElement.prototype.removeEventListener = function(event, listener) {
-    if (!this._events) {
+  EventEmitter.prototype.removeListener = function(event, listener) {
+    this._eventCheck(event, "removeListener");
+    if (!this[EventEmitterEventsKey]) {
       return;
     }
-    if (!this._events[event]) {
+    if (!this[EventEmitterEventsKey][event]) {
       return;
     }
-    this._events[event] = _.without(this._events[event], listener);
-    this.element.removeEventListener(event, listener);
+    this[EventEmitterEventsKey][event] = _.without(this[EventEmitterEventsKey][event], listener);
   };
 
-  EventManagerElement.prototype.removeAllEventListeners = function(eventName) {
-    var eventListener, events, _i, _j, _len, _len1, _ref;
-    events = eventName ? [eventName] : _.keys(this._events);
-    for (_i = 0, _len = events.length; _i < _len; _i++) {
-      eventName = events[_i];
-      _ref = this._events[eventName];
-      for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
-        eventListener = _ref[_j];
-        this.removeEventListener(eventName, eventListener);
-      }
-    }
-  };
-
-  EventManagerElement.prototype.once = function(event, listener) {
+  EventEmitter.prototype.once = function(event, listener) {
     var fn,
       _this = this;
     fn = function() {
@@ -2272,47 +1270,31 @@ EventManagerElement = (function() {
     return this.on(event, fn);
   };
 
-  EventManagerElement.prototype.on = EventManagerElement.prototype.addEventListener;
-
-  EventManagerElement.prototype.off = EventManagerElement.prototype.removeEventListener;
-
-  return EventManagerElement;
-
-})();
-
-exports.EventManager = (function() {
-  function EventManager(element) {
-    this.wrap = __bind(this.wrap, this);
-    this._elements = {};
-  }
-
-  EventManager.prototype.wrap = function(element) {
-    if (!element._eventManagerId) {
-      element._eventManagerId = EventManagerIdCounter++;
+  EventEmitter.prototype.removeAllListeners = function(event) {
+    var listener, _i, _len, _ref;
+    if (!this[EventEmitterEventsKey]) {
+      return;
     }
-    if (!this._elements[element._eventManagerId]) {
-      this._elements[element._eventManagerId] = new EventManagerElement(element);
+    if (!this[EventEmitterEventsKey][event]) {
+      return;
     }
-    return this._elements[element._eventManagerId];
+    _ref = this[EventEmitterEventsKey][event];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      listener = _ref[_i];
+      this.removeListener(event, listener);
+    }
   };
 
-  EventManager.prototype.reset = function() {
-    var element, elementEventManager, _ref, _results;
-    _ref = this._elements;
-    _results = [];
-    for (element in _ref) {
-      elementEventManager = _ref[element];
-      _results.push(elementEventManager.removeAllEventListeners());
-    }
-    return _results;
-  };
+  EventEmitter.prototype.on = EventEmitter.prototype.addListener;
 
-  return EventManager;
+  EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
+
+  return EventEmitter;
 
 })();
 
 
-},{}],19:[function(require,module,exports){
+},{"./Underscore":28}],15:[function(require,module,exports){
 var Events, Utils, _;
 
 _ = require("./Underscore")._;
@@ -2337,8 +1319,6 @@ Events.MouseOver = "mouseover";
 
 Events.MouseOut = "mouseout";
 
-Events.MouseMove = "mousemove";
-
 Events.AnimationStart = "start";
 
 Events.AnimationStop = "stop";
@@ -2359,20 +1339,14 @@ Events.touchEvent = function(event) {
   return touchEvent;
 };
 
-Events.wrap = function(element) {
-  return Framer.CurrentContext.eventManager.wrap(element);
-};
-
 exports.Events = Events;
 
 
-},{"./Underscore":32,"./Utils":33}],20:[function(require,module,exports){
+},{"./Underscore":28,"./Utils":29}],16:[function(require,module,exports){
 exports.MobileScrollFix = require("./MobileScrollFix");
 
-exports.OmitNew = require("./OmitNew");
 
-
-},{"./MobileScrollFix":21,"./OmitNew":22}],21:[function(require,module,exports){
+},{"./MobileScrollFix":17}],17:[function(require,module,exports){
 var Utils,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
@@ -2382,11 +1356,6 @@ Utils = require("../Utils");
 
 exports.enable = function() {
   var MobileScrollFixLayer, handleScrollingLayerTouchMove, handleScrollingLayerTouchStart;
-  document.ontouchmove = function(event) {
-    if (event.target === document.body) {
-      return event.preventDefault();
-    }
-  };
   handleScrollingLayerTouchMove = function(event) {
     return event.stopPropagation();
   };
@@ -2405,6 +1374,7 @@ exports.enable = function() {
     __extends(MobileScrollFixLayer, _super);
 
     function MobileScrollFixLayer(options) {
+      this.__createRootElement = __bind(this.__createRootElement, this);
       this._updateScrollListeners = __bind(this._updateScrollListeners, this);
       MobileScrollFixLayer.__super__.constructor.call(this, options);
       this.on("change:scrollVertical", this._updateScrollListeners);
@@ -2421,6 +1391,15 @@ exports.enable = function() {
       }
     };
 
+    MobileScrollFixLayer.prototype.__createRootElement = function() {
+      var rootElement;
+      rootElement = MobileScrollFixLayer.__super__.__createRootElement.apply(this, arguments);
+      rootElement.addEventListener("touchmove", function(event) {
+        return event.preventDefault();
+      });
+      return rootElement;
+    };
+
     return MobileScrollFixLayer;
 
   })(Framer.Layer);
@@ -2428,34 +1407,7 @@ exports.enable = function() {
 };
 
 
-},{"../Utils":33}],22:[function(require,module,exports){
-var __slice = [].slice;
-
-exports.enable = function(module) {
-  var ClassWrapper;
-  if (module == null) {
-    module = window;
-  }
-  ClassWrapper = function(Klass) {
-    return function() {
-      var args;
-      args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-      return this.prototype = (function(func, args, ctor) {
-        ctor.prototype = func.prototype;
-        var child = new ctor, result = func.apply(child, args);
-        return Object(result) === result ? result : child;
-      })(Klass, args, function(){});
-    };
-  };
-  module.Frame = ClassWrapper(Framer.Frame);
-  module.Layer = ClassWrapper(Framer.Layer);
-  module.BackgroundLayer = ClassWrapper(Framer.BackgroundLayer);
-  module.VideoLayer = ClassWrapper(Framer.VideoLayer);
-  return module.Animation = ClassWrapper(Framer.Animation);
-};
-
-
-},{}],23:[function(require,module,exports){
+},{"../Utils":29}],18:[function(require,module,exports){
 var BaseClass,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -2533,7 +1485,7 @@ exports.Frame = (function(_super) {
 })(BaseClass);
 
 
-},{"./BaseClass":10}],24:[function(require,module,exports){
+},{"./BaseClass":9}],19:[function(require,module,exports){
 var Defaults, Framer, _;
 
 _ = require("./Underscore")._;
@@ -2550,13 +1502,9 @@ Framer.Layer = (require("./Layer")).Layer;
 
 Framer.BackgroundLayer = (require("./BackgroundLayer")).BackgroundLayer;
 
-Framer.VideoLayer = (require("./VideoLayer")).VideoLayer;
-
 Framer.Events = (require("./Events")).Events;
 
 Framer.Animation = (require("./Animation")).Animation;
-
-Framer.AnimationGroup = (require("./AnimationGroup")).AnimationGroup;
 
 Framer.Screen = (require("./Screen")).Screen;
 
@@ -2565,8 +1513,6 @@ Framer.print = (require("./Print")).print;
 if (window) {
   _.extend(window, Framer);
 }
-
-Framer.Context = (require("./Context")).Context;
 
 Framer.Config = (require("./Config")).Config;
 
@@ -2588,25 +1534,15 @@ Framer.SpringRK4Animator = (require("./Animators/SpringRK4Animator")).SpringRK4A
 
 Framer.Importer = (require("./Importer")).Importer;
 
-Framer.DeviceView = (require("./DeviceView")).DeviceView;
-
 Framer.Debug = (require("./Debug")).Debug;
 
+Framer.Session = (require("./Session")).Session;
+
 Framer.Extras = require("./Extras/Extras");
-
-Framer.Loop = new Framer.AnimationLoop();
-
-Utils.domComplete(Framer.Loop.start);
 
 if (window) {
   window.Framer = Framer;
 }
-
-Framer.DefaultContext = new Framer.Context({
-  name: "Default"
-});
-
-Framer.CurrentContext = Framer.DefaultContext;
 
 require("./Compat");
 
@@ -2616,12 +1552,12 @@ if (Utils.isMobile()) {
 
 Defaults = (require("./Defaults")).Defaults;
 
-Defaults.setup();
-
 Framer.resetDefaults = Defaults.reset;
 
+Framer.resetDefaults();
 
-},{"./Animation":1,"./AnimationGroup":2,"./AnimationLoop":3,"./Animators/BezierCurveAnimator":5,"./Animators/LinearAnimator":6,"./Animators/SpringDHOAnimator":7,"./Animators/SpringRK4Animator":8,"./BackgroundLayer":9,"./BaseClass":10,"./Compat":11,"./Config":12,"./Context":13,"./Debug":14,"./Defaults":15,"./DeviceView":16,"./EventEmitter":17,"./Events":19,"./Extras/Extras":20,"./Frame":23,"./Importer":25,"./Layer":26,"./LayerStyle":29,"./Print":30,"./Screen":31,"./Underscore":32,"./Utils":33,"./VideoLayer":34}],25:[function(require,module,exports){
+
+},{"./Animation":1,"./AnimationLoop":2,"./Animators/BezierCurveAnimator":4,"./Animators/LinearAnimator":5,"./Animators/SpringDHOAnimator":6,"./Animators/SpringRK4Animator":7,"./BackgroundLayer":8,"./BaseClass":9,"./Compat":10,"./Config":11,"./Debug":12,"./Defaults":13,"./EventEmitter":14,"./Events":15,"./Extras/Extras":16,"./Frame":18,"./Importer":20,"./Layer":21,"./LayerStyle":24,"./Print":25,"./Screen":26,"./Session":27,"./Underscore":28,"./Utils":29}],20:[function(require,module,exports){
 var ChromeAlert, Utils, _;
 
 _ = require("./Underscore")._;
@@ -2703,16 +1639,10 @@ exports.Importer = (function() {
     }
     layer = new LayerClass(layerInfo);
     layer.name = layerInfo.name;
-    if (layerInfo.name.toLowerCase().indexOf("scroll") !== -1) {
-      layer.scroll = true;
-    }
-    if (layerInfo.name.toLowerCase().indexOf("draggable") !== -1) {
-      layer.draggable.enabled = true;
-    }
     if (!layer.image && !info.children.length && !info.maskFrame) {
       layer.frame = new Frame;
     }
-    _.clone(info.children).reverse().map(function(info) {
+    info.children.reverse().map(function(info) {
       return _this._createLayer(info, layer);
     });
     if (!layer.image && !info.maskFrame) {
@@ -2754,8 +1684,8 @@ exports.Importer.load = function(path) {
 };
 
 
-},{"./Underscore":32,"./Utils":33}],26:[function(require,module,exports){
-var Animation, BaseClass, Config, Defaults, EventEmitter, Frame, LayerDraggable, LayerStates, LayerStyle, Utils, layerProperty, layerValueTypeError, _,
+},{"./Underscore":28,"./Utils":29}],21:[function(require,module,exports){
+var Animation, BaseClass, Config, Defaults, EventEmitter, Frame, LayerDraggable, LayerStates, LayerStyle, Session, Utils, frameProperty, layerProperty, layerStyleProperty, _,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
@@ -2769,6 +1699,8 @@ Utils = require("./Utils");
 Config = require("./Config").Config;
 
 Defaults = require("./Defaults").Defaults;
+
+Session = require("./Session").Session;
 
 BaseClass = require("./BaseClass").BaseClass;
 
@@ -2784,28 +1716,55 @@ LayerStates = require("./LayerStates").LayerStates;
 
 LayerDraggable = require("./LayerDraggable").LayerDraggable;
 
-layerValueTypeError = function(name, value) {
-  throw new Error("Layer." + name + ": value '" + value + "' of type '" + (typeof value) + "'' is not valid");
-};
+Session._RootElement = null;
 
-layerProperty = function(obj, name, cssProperty, fallback, validator, set) {
-  var result;
-  return result = {
+Session._LayerList = [];
+
+layerProperty = function(name, cssProperty, fallback, validator, set) {
+  return {
     exportable: true,
     "default": fallback,
     get: function() {
-      return this._properties[name];
+      return this._getPropertyValue(name);
     },
     set: function(value) {
-      if (value && validator && !validator(value)) {
-        layerValueTypeError(name, value);
+      if (validator(value) === false) {
+        throw Error("value '" + value + "' of type " + (typeof value) + " is not valid for a Layer." + name + " property");
       }
-      this._properties[name] = value;
-      this._element.style[cssProperty] = LayerStyle[cssProperty](this);
-      if (typeof set === "function") {
-        set(this, value);
+      this._setPropertyValue(name, value);
+      this.style[cssProperty] = LayerStyle[cssProperty](this);
+      this.emit("change:" + name, value);
+      if (set) {
+        return set(this, value);
       }
-      return this.emit("change:" + name, value);
+    }
+  };
+};
+
+layerStyleProperty = function(cssProperty) {
+  return {
+    exportable: true,
+    get: function() {
+      return this.style[cssProperty];
+    },
+    set: function(value) {
+      this.style[cssProperty] = value;
+      return this.emit("change:" + cssProperty, value);
+    }
+  };
+};
+
+frameProperty = function(name) {
+  return {
+    exportable: false,
+    get: function() {
+      return this.frame[name];
+    },
+    set: function(value) {
+      var frame;
+      frame = this.frame;
+      frame[name] = value;
+      return this.frame = frame;
     }
   };
 };
@@ -2814,32 +1773,27 @@ exports.Layer = (function(_super) {
   __extends(Layer, _super);
 
   function Layer(options) {
-    var k, _i, _len, _ref;
+    var frame;
     if (options == null) {
       options = {};
     }
     this.addListener = __bind(this.addListener, this);
-    this._properties = {};
-    this._style = {};
-    this._dirtyStyle = {};
-    this._needsRender = false;
-    this._prefer2d = false;
-    this._cacheImage = false;
+    this.__insertElement = __bind(this.__insertElement, this);
+    this.__createRootElement = __bind(this.__createRootElement, this);
+    Session._LayerList.push(this);
     this._createElement();
-    if (options.hasOwnProperty("frame")) {
-      options = _.extend(options, options.frame);
-    }
+    this._setDefaultCSS();
     options = Defaults.getDefaults("Layer", options);
     Layer.__super__.constructor.call(this, options);
-    this._context._layerList.push(this);
-    _ref = ["minX", "midX", "maxX", "minY", "midY", "maxY"];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      k = _ref[_i];
-      if (options.hasOwnProperty(k)) {
-        this[k] = options[k];
-      }
+    this._element.id = "FramerLayer-" + this.id;
+    if (options.hasOwnProperty("frame")) {
+      frame = new Frame(options.frame);
+    } else {
+      frame = new Frame(options);
     }
+    this.frame = frame;
     if (!options.superLayer) {
+      this.bringToFront();
       if (!options.shadow) {
         this._insertElement();
       }
@@ -2849,25 +1803,25 @@ exports.Layer = (function(_super) {
     this._subLayers = [];
   }
 
-  Layer.define("width", layerProperty(Layer, "width", "width", 100, _.isNumber));
+  Layer.define("width", layerProperty("width", "width", 100, _.isNumber));
 
-  Layer.define("height", layerProperty(Layer, "height", "height", 100, _.isNumber));
+  Layer.define("height", layerProperty("height", "height", 100, _.isNumber));
 
-  Layer.define("visible", layerProperty(Layer, "visible", "display", true, _.isBool));
+  Layer.define("visible", layerProperty("visible", "display", true, _.isBool));
 
-  Layer.define("opacity", layerProperty(Layer, "opacity", "opacity", 1, _.isNumber));
+  Layer.define("opacity", layerProperty("opacity", "opacity", 1, _.isNumber));
 
-  Layer.define("index", layerProperty(Layer, "index", "zIndex", 0, _.isNumber));
+  Layer.define("index", layerProperty("index", "zIndex", 0, _.isNumber));
 
-  Layer.define("clip", layerProperty(Layer, "clip", "overflow", true, _.isBool));
+  Layer.define("clip", layerProperty("clip", "overflow", true, _.isBool));
 
-  Layer.define("scrollHorizontal", layerProperty(Layer, "scrollHorizontal", "overflowX", false, _.isBool, function(layer, value) {
+  Layer.define("scrollHorizontal", layerProperty("scrollHorizontal", "overflowX", false, _.isBool, function(layer, value) {
     if (value === true) {
       return layer.ignoreEvents = false;
     }
   }));
 
-  Layer.define("scrollVertical", layerProperty(Layer, "scrollVertical", "overflowY", false, _.isBool, function(layer, value) {
+  Layer.define("scrollVertical", layerProperty("scrollVertical", "overflowY", false, _.isBool, function(layer, value) {
     if (value === true) {
       return layer.ignoreEvents = false;
     }
@@ -2882,79 +1836,63 @@ exports.Layer = (function(_super) {
     }
   });
 
-  Layer.define("ignoreEvents", layerProperty(Layer, "ignoreEvents", "pointerEvents", true, _.isBool));
+  Layer.define("ignoreEvents", layerProperty("ignoreEvents", "pointerEvents", true, _.isBool));
 
-  Layer.define("x", layerProperty(Layer, "x", "webkitTransform", 0, _.isNumber));
+  Layer.define("x", layerProperty("x", "webkitTransform", 0, _.isNumber));
 
-  Layer.define("y", layerProperty(Layer, "y", "webkitTransform", 0, _.isNumber));
+  Layer.define("y", layerProperty("y", "webkitTransform", 0, _.isNumber));
 
-  Layer.define("z", layerProperty(Layer, "z", "webkitTransform", 0, _.isNumber));
+  Layer.define("z", layerProperty("z", "webkitTransform", 0, _.isNumber));
 
-  Layer.define("scaleX", layerProperty(Layer, "scaleX", "webkitTransform", 1, _.isNumber));
+  Layer.define("scaleX", layerProperty("scaleX", "webkitTransform", 1, _.isNumber));
 
-  Layer.define("scaleY", layerProperty(Layer, "scaleY", "webkitTransform", 1, _.isNumber));
+  Layer.define("scaleY", layerProperty("scaleY", "webkitTransform", 1, _.isNumber));
 
-  Layer.define("scaleZ", layerProperty(Layer, "scaleZ", "webkitTransform", 1, _.isNumber));
+  Layer.define("scaleZ", layerProperty("scaleZ", "webkitTransform", 1, _.isNumber));
 
-  Layer.define("scale", layerProperty(Layer, "scale", "webkitTransform", 1, _.isNumber));
+  Layer.define("scale", layerProperty("scale", "webkitTransform", 1, _.isNumber));
 
-  Layer.define("skewX", layerProperty(Layer, "skewX", "webkitTransform", 0, _.isNumber));
+  Layer.define("skewX", layerProperty("skewX", "webkitTransform", 0, _.isNumber));
 
-  Layer.define("skewY", layerProperty(Layer, "skewY", "webkitTransform", 0, _.isNumber));
+  Layer.define("skewY", layerProperty("skewY", "webkitTransform", 0, _.isNumber));
 
-  Layer.define("skew", layerProperty(Layer, "skew", "webkitTransform", 0, _.isNumber));
+  Layer.define("skew", layerProperty("skew", "webkitTransform", 0, _.isNumber));
 
-  Layer.define("originX", layerProperty(Layer, "originX", "webkitTransformOrigin", 0.5, _.isNumber));
+  Layer.define("originX", layerProperty("originX", "webkitTransformOrigin", 0.5, _.isNumber));
 
-  Layer.define("originY", layerProperty(Layer, "originY", "webkitTransformOrigin", 0.5, _.isNumber));
+  Layer.define("originY", layerProperty("originY", "webkitTransformOrigin", 0.5, _.isNumber));
 
-  Layer.define("rotationX", layerProperty(Layer, "rotationX", "webkitTransform", 0, _.isNumber));
+  Layer.define("rotationX", layerProperty("rotationX", "webkitTransform", 0, _.isNumber));
 
-  Layer.define("rotationY", layerProperty(Layer, "rotationY", "webkitTransform", 0, _.isNumber));
+  Layer.define("rotationY", layerProperty("rotationY", "webkitTransform", 0, _.isNumber));
 
-  Layer.define("rotationZ", layerProperty(Layer, "rotationZ", "webkitTransform", 0, _.isNumber));
+  Layer.define("rotationZ", layerProperty("rotationZ", "webkitTransform", 0, _.isNumber));
 
-  Layer.define("rotation", layerProperty(Layer, "rotationZ", "webkitTransform", 0, _.isNumber));
+  Layer.define("rotation", layerProperty("rotationZ", "webkitTransform", 0, _.isNumber));
 
-  Layer.prototype.set_rotation = function(value) {
-    return this.set_rotationZ(value);
-  };
+  Layer.define("blur", layerProperty("blur", "webkitFilter", 0, _.isNumber));
 
-  Layer.define("blur", layerProperty(Layer, "blur", "webkitFilter", 0, _.isNumber));
+  Layer.define("brightness", layerProperty("brightness", "webkitFilter", 100, _.isNumber));
 
-  Layer.define("brightness", layerProperty(Layer, "brightness", "webkitFilter", 100, _.isNumber));
+  Layer.define("saturate", layerProperty("saturate", "webkitFilter", 100, _.isNumber));
 
-  Layer.define("saturate", layerProperty(Layer, "saturate", "webkitFilter", 100, _.isNumber));
+  Layer.define("hueRotate", layerProperty("hueRotate", "webkitFilter", 0, _.isNumber));
 
-  Layer.define("hueRotate", layerProperty(Layer, "hueRotate", "webkitFilter", 0, _.isNumber));
+  Layer.define("contrast", layerProperty("contrast", "webkitFilter", 100, _.isNumber));
 
-  Layer.define("contrast", layerProperty(Layer, "contrast", "webkitFilter", 100, _.isNumber));
+  Layer.define("invert", layerProperty("invert", "webkitFilter", 0, _.isNumber));
 
-  Layer.define("invert", layerProperty(Layer, "invert", "webkitFilter", 0, _.isNumber));
+  Layer.define("grayscale", layerProperty("grayscale", "webkitFilter", 0, _.isNumber));
 
-  Layer.define("grayscale", layerProperty(Layer, "grayscale", "webkitFilter", 0, _.isNumber));
+  Layer.define("sepia", layerProperty("sepia", "webkitFilter", 0, _.isNumber));
 
-  Layer.define("sepia", layerProperty(Layer, "sepia", "webkitFilter", 0, _.isNumber));
+  Layer.define("backgroundColor", layerStyleProperty("backgroundColor"));
 
-  Layer.define("shadowX", layerProperty(Layer, "shadowX", "boxShadow", 0, _.isNumber));
+  Layer.define("borderRadius", layerStyleProperty("borderRadius"));
 
-  Layer.define("shadowY", layerProperty(Layer, "shadowY", "boxShadow", 0, _.isNumber));
+  Layer.define("borderColor", layerStyleProperty("borderColor"));
 
-  Layer.define("shadowBlur", layerProperty(Layer, "shadowBlur", "boxShadow", 0, _.isNumber));
-
-  Layer.define("shadowSpread", layerProperty(Layer, "shadowSpread", "boxShadow", 0, _.isNumber));
-
-  Layer.define("shadowColor", layerProperty(Layer, "shadowColor", "boxShadow", ""));
-
-  Layer.define("backgroundColor", layerProperty(Layer, "backgroundColor", "backgroundColor", null, _.isString));
-
-  Layer.define("color", layerProperty(Layer, "color", "color", null, _.isString));
-
-  Layer.define("borderColor", layerProperty(Layer, "borderColor", "border", null, _.isString));
-
-  Layer.define("borderWidth", layerProperty(Layer, "borderWidth", "border", 0, _.isNumber));
-
-  Layer.define("force2d", layerProperty(Layer, "force2d", "webkitTransform", false, _.isBool));
+  Layer.define("borderWidth", layerStyleProperty("borderWidth"));
 
   Layer.define("name", {
     exportable: true,
@@ -2968,25 +1906,9 @@ exports.Layer = (function(_super) {
     }
   });
 
-  Layer.define("borderRadius", {
-    exportable: true,
-    "default": 0,
-    get: function() {
-      return this._properties["borderRadius"];
-    },
-    set: function(value) {
-      if (value && !_.isNumber(value)) {
-        console.warn("Layer.borderRadius should be a numeric property, not type " + (typeof value));
-      }
-      this._properties["borderRadius"] = value;
-      this._element.style["borderRadius"] = LayerStyle["borderRadius"](this);
-      return this.emit("change:borderRadius", value);
-    }
-  });
-
   Layer.define("frame", {
     get: function() {
-      return _.pick(this, ["x", "y", "width", "height"]);
+      return new Frame(this);
     },
     set: function(frame) {
       var k, _i, _len, _ref, _results;
@@ -2997,148 +1919,63 @@ exports.Layer = (function(_super) {
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         k = _ref[_i];
-        if (frame.hasOwnProperty(k)) {
-          _results.push(this[k] = frame[k]);
-        } else {
-          _results.push(void 0);
-        }
+        _results.push(this[k] = frame[k]);
       }
       return _results;
     }
   });
 
-  Layer.define("minX", {
-    get: function() {
-      return this.x;
-    },
-    set: function(value) {
-      return this.x = value;
-    }
-  });
+  Layer.define("minX", frameProperty("minX"));
 
-  Layer.define("midX", {
-    get: function() {
-      return Utils.frameGetMidX(this);
-    },
-    set: function(value) {
-      return Utils.frameSetMidX(this, value);
-    }
-  });
+  Layer.define("midX", frameProperty("midX"));
 
-  Layer.define("maxX", {
-    get: function() {
-      return Utils.frameGetMaxX(this);
-    },
-    set: function(value) {
-      return Utils.frameSetMaxX(this, value);
-    }
-  });
+  Layer.define("maxX", frameProperty("maxX"));
 
-  Layer.define("minY", {
-    get: function() {
-      return this.y;
-    },
-    set: function(value) {
-      return this.y = value;
-    }
-  });
+  Layer.define("minY", frameProperty("minY"));
 
-  Layer.define("midY", {
-    get: function() {
-      return Utils.frameGetMidY(this);
-    },
-    set: function(value) {
-      return Utils.frameSetMidY(this, value);
-    }
-  });
+  Layer.define("midY", frameProperty("midY"));
 
-  Layer.define("maxY", {
-    get: function() {
-      return Utils.frameGetMaxY(this);
-    },
-    set: function(value) {
-      return Utils.frameSetMaxY(this, value);
-    }
-  });
+  Layer.define("maxY", frameProperty("maxY"));
 
   Layer.prototype.convertPoint = function(point) {
     return Utils.convertPoint(point, null, this);
   };
 
-  Layer.define("screenFrame", {
-    get: function() {
-      return Utils.convertPoint(this.frame, this, null);
-    },
-    set: function(frame) {
-      if (!this.superLayer) {
-        return this.frame = frame;
-      } else {
-        return this.frame = Utils.convertPoint(frame, null, this.superLayer);
-      }
-    }
-  });
-
-  Layer.prototype.screenScaleX = function() {
-    if (this.superLayer) {
-      return this.superLayer.screenScaleX();
-    } else if (this._context._parentLayer) {
-      return this._context._parentLayer.screenScaleX();
-    }
-    return this.scale * this.scaleX;
-  };
-
-  Layer.prototype.screenScaleY = function() {
-    if (this.superLayer) {
-      return this.superLayer.screenScaleY();
-    } else if (this._context._parentLayer) {
-      return this._context._parentLayer.screenScaleY();
-    }
-    return this.scale * this.scaleY;
+  Layer.prototype.screenFrame = function() {
+    return Utils.convertPoint(this.frame, this, null);
   };
 
   Layer.prototype.contentFrame = function() {
-    return Utils.frameMerge(_.pluck(this.subLayers, "frame"));
+    return Utils.frameMerge(this.subLayers.map(function(layer) {
+      return layer.frame.properties;
+    }));
   };
 
   Layer.prototype.centerFrame = function() {
     var frame;
     if (this.superLayer) {
       frame = this.frame;
-      Utils.frameSetMidX(frame, parseInt(this.superLayer.width / 2.0));
-      Utils.frameSetMidY(frame, parseInt(this.superLayer.height / 2.0));
-      return frame;
-    } else if (this._context._parentLayer) {
-      frame = this.frame;
-      Utils.frameSetMidX(frame, parseInt(this._context._parentLayer.width / 2.0));
-      Utils.frameSetMidY(frame, parseInt(this._context._parentLayer.height / 2.0));
+      frame.midX = parseInt(this.superLayer.width / 2.0);
+      frame.midY = parseInt(this.superLayer.height / 2.0);
       return frame;
     } else {
       frame = this.frame;
-      Utils.frameSetMidX(frame, parseInt(window.innerWidth / 2.0));
-      Utils.frameSetMidY(frame, parseInt(window.innerHeight / 2.0));
+      frame.midX = parseInt(window.innerWidth / 2.0);
+      frame.midY = parseInt(window.innerHeight / 2.0);
       return frame;
     }
   };
 
   Layer.prototype.center = function() {
-    this.frame = this.centerFrame();
-    return this;
+    return this.frame = this.centerFrame();
   };
 
-  Layer.prototype.centerX = function(offset) {
-    if (offset == null) {
-      offset = 0;
-    }
-    this.x = this.centerFrame().x + offset;
-    return this;
+  Layer.prototype.centerX = function() {
+    return this.x = this.centerFrame().x;
   };
 
-  Layer.prototype.centerY = function(offset) {
-    if (offset == null) {
-      offset = 0;
-    }
-    this.y = this.centerFrame().y + offset;
-    return this;
+  Layer.prototype.centerY = function() {
+    return this.y = this.centerFrame().y;
   };
 
   Layer.prototype.pixelAlign = function() {
@@ -3156,13 +1993,30 @@ exports.Layer = (function(_super) {
     }
   });
 
-  Layer.prototype.computedStyle = function() {
-    var getComputedStyle;
-    getComputedStyle = document.defaultView.getComputedStyle;
-    if (getComputedStyle == null) {
-      getComputedStyle = window.getComputedStyle;
+  Layer.define("html", {
+    get: function() {
+      var _ref;
+      return (_ref = this._elementHTML) != null ? _ref.innerHTML : void 0;
+    },
+    set: function(value) {
+      if (!this._elementHTML) {
+        this._elementHTML = document.createElement("div");
+        this._element.appendChild(this._elementHTML);
+      }
+      this._elementHTML.innerHTML = value;
+      if (!(this._elementHTML.childNodes.length === 1 && this._elementHTML.childNodes[0].nodeName === "#text")) {
+        this.ignoreEvents = false;
+      }
+      return this.emit("change:html");
     }
-    return getComputedStyle(this._element);
+  });
+
+  Layer.prototype.computedStyle = function() {
+    return document.defaultView.getComputedStyle(this._element);
+  };
+
+  Layer.prototype._setDefaultCSS = function() {
+    return this.style = Config.layerBaseCSS;
   };
 
   Layer.define("classList", {
@@ -3175,36 +2029,27 @@ exports.Layer = (function(_super) {
     if (this._element != null) {
       return;
     }
-    this._element = document.createElement("div");
-    return this._element.classList.add("framerLayer");
+    return this._element = document.createElement("div");
   };
 
   Layer.prototype._insertElement = function() {
-    this.bringToFront();
-    return this._context.getRootElement().appendChild(this._element);
+    return Utils.domComplete(this.__insertElement);
   };
 
-  Layer.define("html", {
-    get: function() {
-      var _ref;
-      return (_ref = this._elementHTML) != null ? _ref.innerHTML : void 0;
-    },
-    set: function(value) {
-      if (!this._elementHTML) {
-        this._elementHTML = document.createElement("div");
-        this._element.appendChild(this._elementHTML);
-      }
-      this._elementHTML.innerHTML = value;
-      return this.emit("change:html");
+  Layer.prototype.__createRootElement = function() {
+    var element;
+    element = document.createElement("div");
+    element.id = "FramerRoot";
+    _.extend(element.style, Config.rootBaseCSS);
+    document.body.appendChild(element);
+    return element;
+  };
+
+  Layer.prototype.__insertElement = function() {
+    if (Session._RootElement == null) {
+      Session._RootElement = this.__createRootElement();
     }
-  });
-
-  Layer.prototype.querySelector = function(query) {
-    return this._element.querySelector(query);
-  };
-
-  Layer.prototype.querySelectorAll = function(query) {
-    return this._element.querySelectorAll(query);
+    return Session._RootElement.appendChild(this._element);
   };
 
   Layer.prototype.destroy = function() {
@@ -3216,7 +2061,7 @@ exports.Layer = (function(_super) {
       _ref.removeChild(this._element);
     }
     this.removeAllListeners();
-    return this._context._layerList = _.without(this._context._layerList, this);
+    return Session._LayerList = _.without(Session._LayerList, this);
   };
 
   Layer.prototype.copy = function() {
@@ -3259,12 +2104,8 @@ exports.Layer = (function(_super) {
       }
       this.backgroundColor = null;
       this._setPropertyValue("image", value);
-      if (value === null || value === "") {
-        this.style["background-image"] = null;
-        return;
-      }
       imageUrl = value;
-      if (Utils.isLocal() && !imageUrl.match(/^https?:\/\//) && this._cacheImage === false) {
+      if (Utils.isLocal() && !imageUrl.match(/^https?:\/\//)) {
         imageUrl += "?nocache=" + (Date.now());
       }
       if ((_ref = this.events) != null ? _ref.hasOwnProperty("load" || ((_ref1 = this.events) != null ? _ref1.hasOwnProperty("error") : void 0)) : void 0) {
@@ -3347,7 +2188,7 @@ exports.Layer = (function(_super) {
     get: function() {
       var _this = this;
       if (this.superLayer === null) {
-        return _.filter(this._context._layerList, function(layer) {
+        return _.filter(Session._LayerList, function(layer) {
           return layer !== _this && layer.superLayer === null;
         });
       }
@@ -3389,8 +2230,8 @@ exports.Layer = (function(_super) {
 
   Layer.prototype.animations = function() {
     var _this = this;
-    return _.filter(this._context._animationList, function(animation) {
-      return animation.options.layer === _this;
+    return _.filter(Animation.runningAnimations(), function(a) {
+      return a.options.layer === _this;
     });
   };
 
@@ -3475,9 +2316,6 @@ exports.Layer = (function(_super) {
       return this._element.scrollLeft;
     },
     set: function(value) {
-      if (!_.isNumber(value)) {
-        layerValueTypeError("scrollX", value);
-      }
       return this._element.scrollLeft = value;
     }
   });
@@ -3487,9 +2325,6 @@ exports.Layer = (function(_super) {
       return this._element.scrollTop;
     },
     set: function(value) {
-      if (!_.isNumber(value)) {
-        layerValueTypeError("scrollY", value);
-      }
       return this._element.scrollTop = value;
     }
   });
@@ -3504,7 +2339,7 @@ exports.Layer = (function(_super) {
     };
     originalListener.modifiedListener = listener;
     Layer.__super__.addListener.call(this, eventName, listener);
-    this._context.eventManager.wrap(this._element).addEventListener(eventName, listener);
+    this._element.addEventListener(eventName, listener);
     if (this._eventListeners == null) {
       this._eventListeners = {};
     }
@@ -3522,7 +2357,7 @@ exports.Layer = (function(_super) {
       listener = listener.modifiedListener;
     }
     Layer.__super__.removeListener.call(this, eventName, listener);
-    this._context.eventManager.wrap(this._element).removeEventListener(eventName, listener);
+    this._element.removeEventListener(eventName, listener);
     if (this._eventListeners) {
       return this._eventListeners[eventName] = _.without(this._eventListeners[eventName], listener);
     }
@@ -3558,8 +2393,12 @@ exports.Layer = (function(_super) {
 
 })(BaseClass);
 
+exports.Layer.Layers = function() {
+  return _.clone(Session._LayerList);
+};
 
-},{"./Animation":1,"./BaseClass":10,"./Config":12,"./Defaults":15,"./EventEmitter":17,"./Frame":23,"./LayerDraggable":27,"./LayerStates":28,"./LayerStyle":29,"./Underscore":32,"./Utils":33}],27:[function(require,module,exports){
+
+},{"./Animation":1,"./BaseClass":9,"./Config":11,"./Defaults":13,"./EventEmitter":14,"./Frame":18,"./LayerDraggable":22,"./LayerStates":23,"./LayerStyle":24,"./Session":27,"./Underscore":28,"./Utils":29}],22:[function(require,module,exports){
 var EventEmitter, Events, Utils, _,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
@@ -3645,7 +2484,8 @@ exports.LayerDraggable = (function(_super) {
   };
 
   LayerDraggable.prototype._updatePosition = function(event) {
-    var correctedDelta, delta, maxDragFrame, maxX, maxY, minX, minY, newX, newY, touchEvent;
+    var correctedDelta, delta, maxDragFrame, maxX, maxY, minX, minY, newX, newY, touchEvent,
+      _this = this;
     if (this.enabled === false) {
       return;
     }
@@ -3656,21 +2496,21 @@ exports.LayerDraggable = (function(_super) {
       y: touchEvent.clientY - this._start.y
     };
     correctedDelta = {
-      x: delta.x * this.speedX * (1 / this._screenScale.x),
-      y: delta.y * this.speedY * (1 / this._screenScale.y),
+      x: delta.x * this.speedX,
+      y: delta.y * this.speedY,
       t: event.timeStamp
     };
-    newX = parseInt(this._start.x + correctedDelta.x - this._offset.x);
-    newY = parseInt(this._start.y + correctedDelta.y - this._offset.y);
+    newX = this._start.x + correctedDelta.x - this._offset.x;
+    newY = this._start.y + correctedDelta.y - this._offset.y;
     if (this.maxDragFrame) {
       maxDragFrame = this.maxDragFrame;
       if (_.isFunction(maxDragFrame)) {
         maxDragFrame = maxDragFrame();
       }
-      minX = Utils.frameGetMinX(maxDragFrame);
-      maxX = Utils.frameGetMaxX(maxDragFrame) - this.layer.width;
-      minY = Utils.frameGetMinY(maxDragFrame);
-      maxY = Utils.frameGetMaxY(maxDragFrame) - this.layer.height;
+      minX = Utils.frameGetMinX(this.maxDragFrame);
+      maxX = Utils.frameGetMaxX(this.maxDragFrame) - this.layer.width;
+      minY = Utils.frameGetMinY(this.maxDragFrame);
+      maxY = Utils.frameGetMaxY(this.maxDragFrame) - this.layer.height;
       if (newX < minX) {
         newX = minX;
       }
@@ -3684,8 +2524,10 @@ exports.LayerDraggable = (function(_super) {
         newY = maxY;
       }
     }
-    this.layer.x = newX;
-    this.layer.y = newY;
+    window.requestAnimationFrame(function() {
+      _this.layer.x = newX;
+      return _this.layer.y = newY;
+    });
     this._deltas.push(correctedDelta);
     return this.emit(Events.DragMove, event);
   };
@@ -3702,10 +2544,6 @@ exports.LayerDraggable = (function(_super) {
     this._offset = {
       x: touchEvent.clientX - this.layer.x,
       y: touchEvent.clientY - this.layer.y
-    };
-    this._screenScale = {
-      x: this.layer.screenScaleX(),
-      y: this.layer.screenScaleY()
     };
     document.addEventListener(Events.TouchMove, this._updatePosition);
     document.addEventListener(Events.TouchEnd, this._touchEnd);
@@ -3725,12 +2563,11 @@ exports.LayerDraggable = (function(_super) {
 })(EventEmitter);
 
 
-},{"./EventEmitter":17,"./Events":19,"./Underscore":32,"./Utils":33}],28:[function(require,module,exports){
+},{"./EventEmitter":14,"./Events":15,"./Underscore":28,"./Utils":29}],23:[function(require,module,exports){
 var BaseClass, Defaults, Events, LayerStatesIgnoredKeys, _,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-  __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
-  __slice = [].slice;
+  __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
 _ = require("./Underscore")._;
 
@@ -3791,7 +2628,7 @@ exports.LayerStates = (function(_super) {
   };
 
   LayerStates.prototype["switch"] = function(stateName, animationOptions, instant) {
-    var animatingKeys, properties, propertyName, value, _ref, _ref1,
+    var animatingKeys, properties, propertyName, value, _ref,
       _this = this;
     if (instant == null) {
       instant = false;
@@ -3826,9 +2663,6 @@ exports.LayerStates = (function(_super) {
         animationOptions = this.animationOptions;
       }
       animationOptions.properties = properties;
-      if ((_ref1 = this._animation) != null) {
-        _ref1.stop();
-      }
       this._animation = this.layer.animate(animationOptions);
       return this._animation.on("stop", function() {
         return _this.emit(Events.StateDidSwitch, _.last(_this._previousStates), stateName, _this);
@@ -3890,20 +2724,13 @@ exports.LayerStates = (function(_super) {
     return this["switch"](_.last(this._previousStates), animationOptions);
   };
 
-  LayerStates.prototype.emit = function() {
-    var args, _ref;
-    args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-    LayerStates.__super__.emit.apply(this, arguments);
-    return (_ref = this.layer).emit.apply(_ref, args);
-  };
-
   return LayerStates;
 
 })(BaseClass);
 
 
-},{"./BaseClass":10,"./Defaults":15,"./Events":19,"./Underscore":32}],29:[function(require,module,exports){
-var filterFormat, _Force2DProperties, _WebkitProperties;
+},{"./BaseClass":9,"./Defaults":13,"./Events":15,"./Underscore":28}],24:[function(require,module,exports){
+var filterFormat, _WebkitProperties;
 
 filterFormat = function(value, unit) {
   return "" + (Utils.round(value, 2)) + unit;
@@ -3911,62 +2738,51 @@ filterFormat = function(value, unit) {
 
 _WebkitProperties = [["blur", "blur", 0, "px"], ["brightness", "brightness", 100, "%"], ["saturate", "saturate", 100, "%"], ["hue-rotate", "hueRotate", 0, "deg"], ["contrast", "contrast", 100, "%"], ["invert", "invert", 0, "%"], ["grayscale", "grayscale", 0, "%"], ["sepia", "sepia", 0, "%"]];
 
-_Force2DProperties = {
-  "z": 0,
-  "scaleX": 1,
-  "scaleY": 1,
-  "scaleZ": 1,
-  "skewX": 0,
-  "skewY": 0,
-  "rotationX": 0,
-  "rotationY": 0
-};
-
 exports.LayerStyle = {
   width: function(layer) {
-    return layer._properties.width + "px";
+    return layer.width + "px";
   },
   height: function(layer) {
-    return layer._properties.height + "px";
+    return layer.height + "px";
   },
   display: function(layer) {
-    if (layer._properties.visible === true) {
+    if (layer.visible === true) {
       return "block";
     }
     return "none";
   },
   opacity: function(layer) {
-    return layer._properties.opacity;
+    return layer.opacity;
   },
   overflow: function(layer) {
-    if (layer._properties.scrollHorizontal === true || layer._properties.scrollVertical === true) {
+    if (layer.scrollHorizontal === true || layer.scrollVertical === true) {
       return "auto";
     }
-    if (layer._properties.clip === true) {
+    if (layer.clip === true) {
       return "hidden";
     }
     return "visible";
   },
   overflowX: function(layer) {
-    if (layer._properties.scrollHorizontal === true) {
+    if (layer.scrollHorizontal === true) {
       return "scroll";
     }
-    if (layer._properties.clip === true) {
+    if (layer.clip === true) {
       return "hidden";
     }
     return "visible";
   },
   overflowY: function(layer) {
-    if (layer._properties.scrollVertical === true) {
+    if (layer.scrollVertical === true) {
       return "scroll";
     }
-    if (layer._properties.clip === true) {
+    if (layer.clip === true) {
       return "hidden";
     }
     return "visible";
   },
   zIndex: function(layer) {
-    return layer._properties.index;
+    return layer.index;
   },
   webkitFilter: function(layer) {
     var css, cssName, fallback, layerName, unit, _i, _len, _ref;
@@ -3980,123 +2796,64 @@ exports.LayerStyle = {
     return css.join(" ");
   },
   webkitTransform: function(layer) {
-    if (layer._prefer2d || layer._properties.force2d) {
-      return exports.LayerStyle.webkitTransformForce2d(layer);
-    }
-    return "		translate3d(" + layer._properties.x + "px," + layer._properties.y + "px," + layer._properties.z + "px) 		scale(" + layer._properties.scale + ")		scale3d(" + layer._properties.scaleX + "," + layer._properties.scaleY + "," + layer._properties.scaleZ + ")		skew(" + layer._properties.skew + "deg," + layer._properties.skew + "deg) 		skewX(" + layer._properties.skewX + "deg)  		skewY(" + layer._properties.skewY + "deg) 		rotateX(" + layer._properties.rotationX + "deg) 		rotateY(" + layer._properties.rotationY + "deg) 		rotateZ(" + layer._properties.rotationZ + "deg) 		";
-  },
-  webkitTransformForce2d: function(layer) {
-    var css, p, v;
-    css = [];
-    for (p in _Force2DProperties) {
-      v = _Force2DProperties[p];
-      if (layer._properties[p] !== v) {
-        console.warn("Layer property '" + p + "'' will be ignored with force2d enabled");
-      }
-    }
-    css.push("translate(" + layer._properties.x + "px," + layer._properties.y + "px)");
-    css.push("scale(" + layer._properties.scale + ")");
-    css.push("skew(" + layer._properties.skew + "deg," + layer._properties.skew + "deg)");
-    css.push("rotate(" + layer._properties.rotationZ + "deg)");
-    return css.join(" ");
+    return "		translate3d(" + layer.x + "px," + layer.y + "px," + layer.z + "px) 		scale(" + layer.scale + ")		scale3d(" + layer.scaleX + "," + layer.scaleY + "," + layer.scaleZ + ")		skew(" + layer.skew + "deg," + layer.skew + "deg) 		skewX(" + layer.skewX + "deg)  		skewY(" + layer.skewY + "deg) 		rotateX(" + layer.rotationX + "deg) 		rotateY(" + layer.rotationY + "deg) 		rotateZ(" + layer.rotationZ + "deg) 		";
   },
   webkitTransformOrigin: function(layer) {
-    return "" + (layer._properties.originX * 100) + "% " + (layer._properties.originY * 100) + "%";
+    return "" + (layer.originX * 100) + "% " + (layer.originY * 100) + "%";
   },
   pointerEvents: function(layer) {
-    if (layer._properties.ignoreEvents) {
+    if (layer.ignoreEvents) {
       return "none";
-    } else {
-      return "auto";
     }
-  },
-  boxShadow: function(layer) {
-    if (!layer._properties.shadowColor) {
-      return "";
-    }
-    return "" + layer._properties.shadowX + "px " + layer._properties.shadowY + "px " + layer._properties.shadowBlur + "px " + layer._properties.shadowSpread + "px " + layer._properties.shadowColor;
-  },
-  backgroundColor: function(layer) {
-    return layer._properties.backgroundColor;
-  },
-  color: function(layer) {
-    return layer._properties.color;
-  },
-  borderRadius: function(layer) {
-    if (!_.isNumber(layer._properties.borderRadius)) {
-      return layer._properties.borderRadius;
-    }
-    return layer._properties.borderRadius + "px";
-  },
-  border: function(layer) {
-    return "" + layer._properties.borderWidth + "px solid " + layer._properties.borderWidth;
+    return "auto";
   }
 };
 
 
-},{}],30:[function(require,module,exports){
-var Context, Utils, printContext, printLayer,
+},{}],25:[function(require,module,exports){
+var Session, Utils,
   __slice = [].slice;
 
 Utils = require("./Utils");
 
-Context = require("./Context").Context;
+Session = require("./Session").Session;
 
 "\nTodo:\n- Better looks\n- Resizable\n- Live in own space on top of all Framer stuff\n";
 
-printContext = null;
-
-printLayer = null;
-
 exports.print = function() {
-  var args;
+  var args, printLayer, update;
   args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-  if (!printContext) {
-    printContext = new Context({
-      name: "Print"
-    });
+  printLayer = Session.printLayer;
+  if (!printLayer) {
+    printLayer = new Layer;
+    printLayer.scrollVertical = true;
+    printLayer.html = "";
+    printLayer.style = {
+      "font": "12px/1.35em Menlo",
+      "color": "rgba(0,0,0,.7)",
+      "padding": "8px",
+      "padding-bottom": "30px",
+      "zIndex": 9999,
+      "border-top": "1px solid #ccc",
+      "backgroundColor": "#fff"
+    };
+    update = function() {
+      printLayer.width = window.innerWidth;
+      printLayer.height = 160;
+      return printLayer.maxY = window.innerHeight;
+    };
+    update();
+    Screen.on("resize", update);
   }
-  printContext.run(function() {
-    var printNode, update;
-    if (!printLayer) {
-      printLayer = new Layer;
-      printLayer.scrollVertical = true;
-      printLayer.ignoreEvents = false;
-      printLayer.html = "";
-      printLayer.style = {
-        "font": "12px/1.35em Menlo",
-        "color": "rgba(0,0,0,.7)",
-        "padding": "8px",
-        "padding-bottom": "30px",
-        "border-top": "1px solid #d9d9d9"
-      };
-      printLayer.opacity = 0.9;
-      printLayer.style.zIndex = 999;
-      printLayer.visible = true;
-      printLayer.backgroundColor = "white";
-      update = function() {
-        printLayer.width = window.innerWidth;
-        printLayer.height = 160;
-        return printLayer.maxY = window.innerHeight;
-      };
-      update();
-      printContext.eventManager.wrap(window).addEventListener("resize", update);
-    }
-    printNode = document.createElement("div");
-    printNode.innerHTML = "&raquo; " + args.map(Utils.stringify).join(", ") + "<br>";
-    printNode.style["-webkit-user-select"] = "text";
-    printNode.style["cursor"] = "auto";
-    return printLayer._element.appendChild(printNode);
-  });
-  return Utils.delay(0, function() {
-    return printLayer._element.scrollTop = printLayer._element.scrollHeight;
-  });
+  printLayer.visible = true;
+  printLayer.html += "&raquo; " + (args.map(Utils.stringify).join(', ')) + "<br>";
+  printLayer._element.scrollTop = printLayer._element.scrollHeight;
+  return Session.printLayer = printLayer;
 };
 
 
-},{"./Context":13,"./Utils":33}],31:[function(require,module,exports){
-var BaseClass, ScreenClass, _ref,
-  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+},{"./Session":27,"./Utils":29}],26:[function(require,module,exports){
+var BaseClass, ScreenClass,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -4105,10 +2862,9 @@ BaseClass = require("./BaseClass").BaseClass;
 ScreenClass = (function(_super) {
   __extends(ScreenClass, _super);
 
-  function ScreenClass() {
-    this.addListener = __bind(this.addListener, this);
-    _ref = ScreenClass.__super__.constructor.apply(this, arguments);
-    return _ref;
+  function ScreenClass(options) {
+    ScreenClass.__super__.constructor.call(this, options);
+    this._setupResizeListener();
   }
 
   ScreenClass.define("width", {
@@ -4123,17 +2879,15 @@ ScreenClass = (function(_super) {
     }
   });
 
-  ScreenClass.prototype.addListener = function(eventName, listener) {
-    var _this = this;
-    if (eventName === "resize") {
-      Framer.CurrentContext.eventManager.wrap(window).addEventListener("resize", function() {
-        return _this.emit("resize");
-      });
-    }
-    return ScreenClass.__super__.addListener.call(this, eventName, listener);
+  ScreenClass.prototype._setupResizeListener = function() {
+    var oldResizeFunction,
+      _this = this;
+    oldResizeFunction = window.onresize;
+    return window.onresize = function() {
+      _this.emit("resize", _this);
+      return typeof oldResizeFunction === "function" ? oldResizeFunction() : void 0;
+    };
   };
-
-  ScreenClass.prototype.on = ScreenClass.prototype.addListener;
 
   return ScreenClass;
 
@@ -4142,7 +2896,11 @@ ScreenClass = (function(_super) {
 exports.Screen = new ScreenClass;
 
 
-},{"./BaseClass":10}],32:[function(require,module,exports){
+},{"./BaseClass":9}],27:[function(require,module,exports){
+exports.Session = {};
+
+
+},{}],28:[function(require,module,exports){
 var _;
 
 _ = require("lodash");
@@ -4158,19 +2916,53 @@ _.isBool = function(v) {
 exports._ = _;
 
 
-},{"lodash":36,"underscore.string":37}],33:[function(require,module,exports){
-var Screen, Utils, _, __domComplete, __domReady,
+},{"lodash":30,"underscore.string":31}],29:[function(require,module,exports){
+var Screen, Session, Utils, _, __domComplete, __domReady,
   __slice = [].slice,
   _this = this;
 
 _ = require("./Underscore")._;
+
+Session = require("./Session").Session;
 
 Screen = require("./Screen").Screen;
 
 Utils = {};
 
 Utils.reset = function() {
-  return Framer.CurrentContext.reset();
+  var delayInterval, delayTimer, layer, __domComplete, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3;
+  if (__domReady === false) {
+    return;
+  }
+  __domComplete = [];
+  Session.printLayer = null;
+  if (Session._LayerList) {
+    _ref = Session._LayerList;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      layer = _ref[_i];
+      layer.removeAllListeners();
+    }
+  }
+  Session._LayerList = [];
+  if ((_ref1 = Session._RootElement) != null) {
+    _ref1.innerHTML = "";
+  }
+  if (Session._delayTimers) {
+    _ref2 = Session._delayTimers;
+    for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
+      delayTimer = _ref2[_j];
+      clearTimeout(delayTimer);
+    }
+    Session._delayTimers = [];
+  }
+  if (Session._delayIntervals) {
+    _ref3 = Session._delayIntervals;
+    for (_k = 0, _len2 = _ref3.length; _k < _len2; _k++) {
+      delayInterval = _ref3[_k];
+      clearInterval(delayInterval);
+    }
+    return Session._delayIntervals = [];
+  }
 };
 
 Utils.getValue = function(value) {
@@ -4230,33 +3022,6 @@ Utils.arrayPrev = function(arr, item) {
   return arr[arr.indexOf(item) - 1] || _.last(arr);
 };
 
-Utils.sum = function(arr) {
-  return _.reduce(arr, function(a, b) {
-    return a + b;
-  });
-};
-
-Utils.average = function(arr) {
-  return Utils.sum(arr) / arr.length;
-};
-
-Utils.mean = Utils.average;
-
-Utils.median = function(x) {
-  var sorted;
-  if (x.length === 0) {
-    return null;
-  }
-  sorted = x.slice().sort(function(a, b) {
-    return a - b;
-  });
-  if (sorted.length % 2 === 1) {
-    return sorted[(sorted.length - 1) / 2];
-  } else {
-    return (sorted[(sorted.length / 2) - 1] + sorted[sorted.length / 2]) / 2;
-  }
-};
-
 if (window.requestAnimationFrame == null) {
   window.requestAnimationFrame = window.webkitRequestAnimationFrame;
 }
@@ -4274,14 +3039,20 @@ Utils.getTime = function() {
 Utils.delay = function(time, f) {
   var timer;
   timer = setTimeout(f, time * 1000);
-  Framer.CurrentContext._delayTimers.push(timer);
+  if (Session._delayTimers == null) {
+    Session._delayTimers = [];
+  }
+  Session._delayTimers.push(timer);
   return timer;
 };
 
 Utils.interval = function(time, f) {
   var timer;
   timer = setInterval(f, time * 1000);
-  Framer.CurrentContext._delayIntervals.push(timer);
+  if (Session._delayIntervals == null) {
+    Session._delayIntervals = [];
+  }
+  Session._delayIntervals.push(timer);
   return timer;
 };
 
@@ -4332,26 +3103,6 @@ Utils.throttle = function(delay, fn) {
   };
 };
 
-Utils.memoize = function(fn) {
-  return function() {
-    var args, currentArg, hash, i;
-    args = Array.prototype.slice.call(arguments);
-    hash = "";
-    i = args.length;
-    currentArg = null;
-    while (i--) {
-      currentArg = args[i];
-      hash += (currentArg === Object(currentArg) ? JSON.stringify(currentArg) : currentArg);
-      fn.memoize || (fn.memoize = {});
-    }
-    if (hash in fn.memoize) {
-      return fn.memoize[hash];
-    } else {
-      return fn.memoize[hash] = fn.apply(this, args);
-    }
-  };
-};
-
 Utils.randomColor = function(alpha) {
   var c;
   if (alpha == null) {
@@ -4398,9 +3149,6 @@ Utils.stringify = function(obj) {
     }
   } catch (_error) {
     "";
-  }
-  if (obj === null) {
-    return "null";
   }
   if (obj === void 0) {
     return "undefined";
@@ -4453,32 +3201,16 @@ Utils.isWebKit = function() {
   return window.WebKitCSSMatrix !== null;
 };
 
-Utils.isChrome = function() {
-  return /chrome/.test(navigator.userAgent.toLowerCase());
-};
-
-Utils.isSafari = function() {
-  return /safari/.test(navigator.userAgent.toLowerCase());
-};
-
 Utils.isTouch = function() {
   return window.ontouchstart === null;
 };
 
-Utils.isDesktop = function() {
-  return Utils.deviceType() === "desktop";
-};
-
-Utils.isPhone = function() {
-  return Utils.deviceType() === "phone";
-};
-
-Utils.isTablet = function() {
-  return Utils.deviceType() === "tablet";
-};
-
 Utils.isMobile = function() {
-  return Utils.isPhone() || Utils.isTablet();
+  return /iphone|ipod|android|ie|blackberry|fennec/.test(navigator.userAgent.toLowerCase());
+};
+
+Utils.isChrome = function() {
+  return /chrome/.test(navigator.userAgent.toLowerCase());
 };
 
 Utils.isLocal = function() {
@@ -4489,26 +3221,8 @@ Utils.isLocalUrl = function(url) {
   return url.slice(0, 7) === "file://";
 };
 
-Utils.isFramerStudio = function() {
-  return navigator.userAgent.indexOf("FramerStudio") !== -1;
-};
-
 Utils.devicePixelRatio = function() {
   return window.devicePixelRatio;
-};
-
-Utils.isJP2Supported = function() {
-  return Utils.isWebKit() && !Utils.isChrome();
-};
-
-Utils.deviceType = function() {
-  if (/(mobi)/i.test(navigator.userAgent)) {
-    return "phone";
-  }
-  if (/(tablet)|(iPad)/i.test(navigator.userAgent)) {
-    return "tablet";
-  }
-  return "desktop";
 };
 
 Utils.pathJoin = function() {
@@ -4534,20 +3248,11 @@ Utils.modulate = function(value, rangeA, rangeB, limit) {
   toLow = rangeB[0], toHigh = rangeB[1];
   result = toLow + (((value - fromLow) / (fromHigh - fromLow)) * (toHigh - toLow));
   if (limit === true) {
-    if (toLow < toHigh) {
-      if (result < toLow) {
-        return toLow;
-      }
-      if (result > toHigh) {
-        return toHigh;
-      }
-    } else {
-      if (result > toLow) {
-        return toLow;
-      }
-      if (result < toHigh) {
-        return toHigh;
-      }
+    if (result < toLow) {
+      return toLow;
+    }
+    if (result > toHigh) {
+      return toHigh;
     }
   }
   return result;
@@ -4656,31 +3361,6 @@ Utils.domLoadScriptSync = function(path) {
   scriptData = Utils.domLoadDataSync(path);
   eval(scriptData);
   return scriptData;
-};
-
-Utils.insertCSS = function(css) {
-  var styleElement;
-  styleElement = document.createElement("style");
-  styleElement.type = "text/css";
-  styleElement.innerHTML = css;
-  return Utils.domComplete(function() {
-    return document.body.appendChild(styleElement);
-  });
-};
-
-Utils.loadImage = function(url, callback, context) {
-  var element;
-  element = new Image;
-  if (context == null) {
-    context = Framer.CurrentContext;
-  }
-  context.eventManager.wrap(element).addEventListener("load", function(event) {
-    return callback();
-  });
-  context.eventManager.wrap(element).addEventListener("error", function(event) {
-    return callback(true);
-  });
-  return element.src = url;
 };
 
 Utils.pointMin = function() {
@@ -4864,23 +3544,25 @@ Utils.frameMerge = function() {
 };
 
 Utils.convertPoint = function(input, layerA, layerB) {
-  var layer, point, superLayersA, superLayersB, _i, _j, _len, _len1;
-  point = _.defaults(input, {
-    x: 0,
-    y: 0
-  });
+  var k, layer, point, superLayersA, superLayersB, _i, _j, _k, _len, _len1, _len2, _ref;
+  point = {};
+  _ref = ["x", "y", "width", "height"];
+  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+    k = _ref[_i];
+    point[k] = input[k];
+  }
   superLayersA = (layerA != null ? layerA.superLayers() : void 0) || [];
   superLayersB = (layerB != null ? layerB.superLayers() : void 0) || [];
   if (layerB) {
     superLayersB.push(layerB);
   }
-  for (_i = 0, _len = superLayersA.length; _i < _len; _i++) {
-    layer = superLayersA[_i];
+  for (_j = 0, _len1 = superLayersA.length; _j < _len1; _j++) {
+    layer = superLayersA[_j];
     point.x += layer.x - layer.scrollFrame.x;
     point.y += layer.y - layer.scrollFrame.y;
   }
-  for (_j = 0, _len1 = superLayersB.length; _j < _len1; _j++) {
-    layer = superLayersB[_j];
+  for (_k = 0, _len2 = superLayersB.length; _k < _len2; _k++) {
+    layer = superLayersB[_k];
     point.x -= layer.x + layer.scrollFrame.x;
     point.y -= layer.y + layer.scrollFrame.y;
   }
@@ -4890,251 +3572,7 @@ Utils.convertPoint = function(input, layerA, layerB) {
 _.extend(exports, Utils);
 
 
-},{"./Screen":31,"./Underscore":32}],34:[function(require,module,exports){
-var Layer,
-  __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
-Layer = require("./Layer").Layer;
-
-exports.VideoLayer = (function(_super) {
-  __extends(VideoLayer, _super);
-
-  function VideoLayer(options) {
-    if (options == null) {
-      options = {};
-    }
-    VideoLayer.__super__.constructor.call(this, options);
-    this.player = document.createElement("video");
-    this.player.style.width = "100%";
-    this.player.style.height = "100%";
-    this.player.on = this.player.addEventListener;
-    this.player.off = this.player.removeEventListener;
-    this.video = options.video;
-    this._element.appendChild(this.player);
-  }
-
-  VideoLayer.define("video", {
-    get: function() {
-      return this.player.src;
-    },
-    set: function(video) {
-      return this.player.src = video;
-    }
-  });
-
-  return VideoLayer;
-
-})(Layer);
-
-
-},{"./Layer":26}],35:[function(require,module,exports){
-'use strict';
-
-/**
- * Representation of a single EventEmitter function.
- *
- * @param {Function} fn Event handler to be called.
- * @param {Mixed} context Context for function execution.
- * @param {Boolean} once Only emit once
- * @api private
- */
-function EE(fn, context, once) {
-  this.fn = fn;
-  this.context = context;
-  this.once = once || false;
-}
-
-/**
- * Minimal EventEmitter interface that is molded against the Node.js
- * EventEmitter interface.
- *
- * @constructor
- * @api public
- */
-function EventEmitter() { /* Nothing to set */ }
-
-/**
- * Holds the assigned EventEmitters by name.
- *
- * @type {Object}
- * @private
- */
-EventEmitter.prototype._events = undefined;
-
-/**
- * Return a list of assigned event listeners.
- *
- * @param {String} event The events that should be listed.
- * @returns {Array}
- * @api public
- */
-EventEmitter.prototype.listeners = function listeners(event) {
-  if (!this._events || !this._events[event]) return [];
-
-  for (var i = 0, l = this._events[event].length, ee = []; i < l; i++) {
-    ee.push(this._events[event][i].fn);
-  }
-
-  return ee;
-};
-
-/**
- * Emit an event to all registered event listeners.
- *
- * @param {String} event The name of the event.
- * @returns {Boolean} Indication if we've emitted an event.
- * @api public
- */
-EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
-  if (!this._events || !this._events[event]) return false;
-
-  var listeners = this._events[event]
-    , length = listeners.length
-    , len = arguments.length
-    , ee = listeners[0]
-    , args
-    , i, j;
-
-  if (1 === length) {
-    if (ee.once) this.removeListener(event, ee.fn, true);
-
-    switch (len) {
-      case 1: return ee.fn.call(ee.context), true;
-      case 2: return ee.fn.call(ee.context, a1), true;
-      case 3: return ee.fn.call(ee.context, a1, a2), true;
-      case 4: return ee.fn.call(ee.context, a1, a2, a3), true;
-      case 5: return ee.fn.call(ee.context, a1, a2, a3, a4), true;
-      case 6: return ee.fn.call(ee.context, a1, a2, a3, a4, a5), true;
-    }
-
-    for (i = 1, args = new Array(len -1); i < len; i++) {
-      args[i - 1] = arguments[i];
-    }
-
-    ee.fn.apply(ee.context, args);
-  } else {
-    for (i = 0; i < length; i++) {
-      if (listeners[i].once) this.removeListener(event, listeners[i].fn, true);
-
-      switch (len) {
-        case 1: listeners[i].fn.call(listeners[i].context); break;
-        case 2: listeners[i].fn.call(listeners[i].context, a1); break;
-        case 3: listeners[i].fn.call(listeners[i].context, a1, a2); break;
-        default:
-          if (!args) for (j = 1, args = new Array(len -1); j < len; j++) {
-            args[j - 1] = arguments[j];
-          }
-
-          listeners[i].fn.apply(listeners[i].context, args);
-      }
-    }
-  }
-
-  return true;
-};
-
-/**
- * Register a new EventListener for the given event.
- *
- * @param {String} event Name of the event.
- * @param {Functon} fn Callback function.
- * @param {Mixed} context The context of the function.
- * @api public
- */
-EventEmitter.prototype.on = function on(event, fn, context) {
-  if (!this._events) this._events = {};
-  if (!this._events[event]) this._events[event] = [];
-  this._events[event].push(new EE( fn, context || this ));
-
-  return this;
-};
-
-/**
- * Add an EventListener that's only called once.
- *
- * @param {String} event Name of the event.
- * @param {Function} fn Callback function.
- * @param {Mixed} context The context of the function.
- * @api public
- */
-EventEmitter.prototype.once = function once(event, fn, context) {
-  if (!this._events) this._events = {};
-  if (!this._events[event]) this._events[event] = [];
-  this._events[event].push(new EE(fn, context || this, true ));
-
-  return this;
-};
-
-/**
- * Remove event listeners.
- *
- * @param {String} event The event we want to remove.
- * @param {Function} fn The listener that we need to find.
- * @param {Boolean} once Only remove once listeners.
- * @api public
- */
-EventEmitter.prototype.removeListener = function removeListener(event, fn, once) {
-  if (!this._events || !this._events[event]) return this;
-
-  var listeners = this._events[event]
-    , events = [];
-
-  if (fn) for (var i = 0, length = listeners.length; i < length; i++) {
-    if (listeners[i].fn !== fn && listeners[i].once !== once) {
-      events.push(listeners[i]);
-    }
-  }
-
-  //
-  // Reset the array, or remove it completely if we have no more listeners.
-  //
-  if (events.length) this._events[event] = events;
-  else this._events[event] = null;
-
-  return this;
-};
-
-/**
- * Remove all listeners or only the listeners for the specified event.
- *
- * @param {String} event The event want to remove all listeners for.
- * @api public
- */
-EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
-  if (!this._events) return this;
-
-  if (event) this._events[event] = null;
-  else this._events = {};
-
-  return this;
-};
-
-//
-// Alias methods names because people roll like that.
-//
-EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
-EventEmitter.prototype.addListener = EventEmitter.prototype.on;
-
-//
-// This function doesn't apply anymore.
-//
-EventEmitter.prototype.setMaxListeners = function setMaxListeners() {
-  return this;
-};
-
-//
-// Expose the module.
-//
-EventEmitter.EventEmitter = EventEmitter;
-EventEmitter.EventEmitter2 = EventEmitter;
-EventEmitter.EventEmitter3 = EventEmitter;
-
-if ('object' === typeof module && module.exports) {
-  module.exports = EventEmitter;
-}
-
-},{}],36:[function(require,module,exports){
+},{"./Screen":26,"./Session":27,"./Underscore":28}],30:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};/**
  * @license
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
@@ -11921,7 +10359,7 @@ var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? 
   }
 }.call(this));
 
-},{}],37:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 //  Underscore.string
 //  (c) 2010 Esa-Matti Suuronen <esa-matti aet suuronen dot org>
 //  Underscore.string is freely distributable under the terms of the MIT license.
@@ -12596,7 +11034,7 @@ var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? 
   root._.string = root._.str = _s;
 }(this, String);
 
-},{}]},{},[24])
+},{}]},{},[19])
 
 ;
 //# sourceMappingURL=framer.js.map
