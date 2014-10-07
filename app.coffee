@@ -771,16 +771,15 @@ showFirstSnapshotView = (bottomView, clickButton) ->
 	firstSnapshotView.image = "images/jingdong/homepage/firsttime_homepage.jpg"
 	changePageAnimation(bottomView, clickButton, firstSnapshotView)
 	enterButton = new Layer
-			x : (SCREEN_WIDTH - 240)/2.0
-			y : SCREEN_HEIGHT - 110 - 50
-			width : 240
-			height : 50
+			x : (SCREEN_WIDTH - 580)/2.0
+			y : SCREEN_HEIGHT - 140
+			width : 580
+			height : 110
 	makeLighterLayer(enterButton)
 	firstSnapshotView.addSubLayer enterButton
 	enterButton.on Events.Click, ->
 		showJDHomePageView(firstSnapshotView, enterButton)
-	addJDDetailHeader(bottomView, clickButton, firstSnapshotView)
-	
+	addBackButton(bottomView, clickButton, firstSnapshotView)
 	firstSnapshotView.on Events.AnimationEnd, ->
 		if firstSnapshotView.x >= SCREEN_WIDTH
 			firstSnapshotView.visible = false
