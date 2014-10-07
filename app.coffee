@@ -1,7 +1,11 @@
-# # This imports all the layers for "wechat" into wechatLayers
-# wechatLayers = Framer.Importer.load "imported/wechat"
+# This imports all the layers for "timeline" into timelineLayers
+timelineLayers = Framer.Importer.load "imported/timeline"
 
-# # So to hide the layer for a group named "Main Screen" you can do:
+# This imports all the layers for "street" into streetLayers
+streetLayers = Framer.Importer.load "imported/street"
+
+# This imports all the layers for "index" into indexLayers
+indexLayers = Framer.Importer.load "imported/index"
 
 ######### 定义全局变量
 STATUSBAR_HEIGHT = 0
@@ -238,11 +242,27 @@ showLaunchView = () ->
 		width: SCREEN_WIDTH
 		height: SCREEN_HEIGHT
 	launchView.image = "images/launch.jpg"
-
-	setTimeout((->
-		showMainFrameTabView()
-		launchView.visible = false
-		),5000)
+	progressBar = new Layer
+		x: 0
+		y: 0
+		width: 0
+		height: 6
+		backgroundColor: '#1fb822'
+		
+	launchView.addSubLayer(progressBar)
+	loadAni = progressBar.animate
+		properties: {width: SCREEN_WIDTH}
+		time: 4
+		
+	loadAni.on('stop', ->
+		launchView.animate
+			properties: {opacity: 0}
+			time: 0.5)
+			
+# 	setTimeout((->
+# 		showMainFrameTabView()
+# 		launchView.visible = false
+# 		),5000)
 		
 showMainFrameTabView = () ->
 	firstTab.visible = true
@@ -785,16 +805,18 @@ pushJingdongHomepage = (clickCell) ->
 	else 
 		showJDHomePageView(thirdTab)
 
-
+# 逛街入口
 addSpecialEventForFindFriend = () ->
 	shoppingLayer = new Layer
 		x : 0
 		y : thirdTab.height - 320 - TABBAR_HEIGHT - 88
 		width : thirdTab.width
 		height : 88
+
 	thirdTab.addSubLayer shoppingLayer
 	shoppingLayer.on Events.Click, ->
 		pushJingdongHomepage(shoppingLayer)
+# 		push(indexLayers)
 
 firstTab = generateFullScreenLayer("images/black_background.png", 		"images/mainframe/mainframe_topbar.jpg",
 "images/mainframe/mainframe_content.jpg",
@@ -827,14 +849,7 @@ showLaunchView()
 
 
 
-# This imports all the layers for "timeline" into timelineLayers
-timelineLayers = Framer.Importer.load "imported/timeline"
 
-# This imports all the layers for "street" into streetLayers
-streetLayers = Framer.Importer.load "imported/street"
-
-# This imports all the layers for "index" into indexLayers
-indexLayers = Framer.Importer.load "imported/index"
 
 primaryColor = '#e5504c'
 deviceWidth = 640
@@ -933,7 +948,7 @@ makeScrollable = (contentLayer, offset = 910) ->
 					velocity: 10
 					
 	return contentLayer
-
+generateIndex = () ->
 contentLayer = indexLayers.content
 contentLayer = makeScrollable(contentLayer)
 
@@ -1058,8 +1073,7 @@ goodsWidth = 290
 goodsHeight = 450
 goodsMargin = 20
 
-# Change card1 to btnLayer	
-card1.on Events.TouchEnd, ->
+btnLayer.on Events.TouchEnd, ->
 	this.backgroundColor = 'transparent'
 	this.style = {color: primaryColor}
 	
@@ -1104,8 +1118,15 @@ card1.on Events.TouchEnd, ->
 	timelineContent = timelinePage.subLayersByName('content')[0]
 	makeScrollable(timelineContent)
 
+streetEnterBtn = new Layer
+	width: streetEnter.width
+	height: 155
+	y: 160
+	
+streetEnter.addSubLayer(streetEnterBtn)
+
 ##### Page Street ##### 
-streetEnter.on Events.TouchEnd, ->
+streetEnterBtn.on Events.TouchEnd, ->
 	streetPage = push(streetLayers,timelineLayers)
 	streetContent = streetPage.subLayersByName('content')[0]
 	makeScrollable(streetContent)
@@ -1116,52 +1137,6 @@ streetEnter.on Events.TouchEnd, ->
 	eleLayer.style = {border: '1px solid #dfdfdd'}
 	
 	streetBtnWidth = 138
-	
-# 	streetNames = ['女鞋街', '男鞋街', '服装城', '美妆店', '美食城', '运动街', '趣玩店', '家具城']
-# 	[0..streetNames.length - 1].map (i) ->
-# 		street = new Layer
-# 			width: streetBtnWidth
-# 			height: navLayer.height
-	
-# 	nav = new Layer
-# 		x: eleLayer.width
-# # 		y: navLayer.y
-# 		width: streetNames.length * streetBtnWidth
-# 		height: navLayer.height
-		
-# 	nav.draggable.enabled = true
-# 	nav.draggable.speedX = 0.8
-# 	nav.draggable.speedY = 0
-# 	
-# 	originX = nav.x
-# 	originY = nav.y
-	
-	# Snap the chat list
-# 	nav.on Events.DragEnd, (event, layer) ->
-# 		if layer.x > originX
-# 			layer.animate
-# 				properties:
-# 					x: originX
-# 					y: originY
-# 				curve: "spring"
-# 				curveOptions:
-# 					friction: 20
-# 					tension: 200
-# 					velocity: 10
-# 			
-# 		if layer.x < originX - layer.width + deviceWidth - eleLayer.width
-# 			layer.animate
-# 				properties:
-# 					x: originX - layer.width + deviceWidth - eleLayer.width
-# 					y: originY
-# 				curve: "spring"
-# 				curveOptions:
-# 					friction: 20
-# 					tension: 200
-# 					velocity: 10	
-	
-# 	navLayer.addSubLayer(nav)
-# 	eleLayer.bringToFront()
 	
 	streetPage.addSubLayer(navLayer)
 	streetPage.height = deviceHeight
