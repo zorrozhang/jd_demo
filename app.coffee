@@ -353,7 +353,7 @@ addBackButton = (bottomView, clickCell, topView) ->
 ##京东导航栏的布局
 addCenterDropListButton = (topView) ->
 	centerDropListButton = new Layer
-		x : 260
+		x : 555
 		y : 0
 		width : 150
 		height : 88
@@ -369,30 +369,47 @@ addCenterDropListButton = (topView) ->
 #显示中间下拉列表
 showCenterDropListView = (bottomView, clickButton) ->
 	centerDropListView = new Layer
-		x : (SCREEN_WIDTH - 300)/2.0
-		y : 128 - 10 - STATUSBAR_HEIGHT
-		width : 300
-		height : 395
-	centerDropListView.image  = "images/jingdong/detailpage/center_menu_list.png"
+		x : 0
+		y : SCREEN_HEIGHT - 832
+		width : 640
+		height : 832
+	centerDropListView.image  = "images/jingdong/detailpage/center_menu_list.jpg"
 	bottomView.addSubLayer centerDropListView
 	addJDHomePageButton(centerDropListView)
 	addClassifyButton(centerDropListView)
 	addWishListButton(centerDropListView)
 	addUserCenterButton(centerDropListView)
 	addAllOrderButton(centerDropListView)
+	addShoppingButton(centerDropListView)
+	addCancelCenterDropListViewButton(centerDropListView)
 	return centerDropListView
 
+# 取消下拉菜单按钮 
+addCancelCenterDropListViewButton = (topView) ->
+	cancelButton = new Layer
+		x : 40
+		y : 720
+		width : 560
+		height : 88
+	topView.addSubLayer cancelButton
+	cancelButton.on Events.Click, ->
+		topView.visible = false
+		
+	return cancelButton
+		
 # 增加购物车的按钮
 addShopCardButton = (topView) ->
-	shopCardButton = new Layer
-		x : 555
-		y : 0
-		width : 60
-		height : 88
-	topView.addSubLayer shopCardButton
-	shopCardButton.on Events.Click, ->
-		showShopCardView(topView, shopCardButton)
-	return shopCardButton
+# 	shopCardButton = new Layer
+# 		x : 555
+# 		y : 0
+# 		width : 60
+# 		height : 88
+# 	topView.addSubLayer shopCardButton
+# 	shopCardButton.on Events.Click, ->
+# 		addCenterDropListButton(topView)
+# 		showShopCardView(topView, shopCardButton)
+# 	return shopCardButton
+	return null
 
 #显示购物车页面
 showShopCardView = (bottomView, clickButton) ->
@@ -437,10 +454,10 @@ showSearchView = (bottomView, clickButton) ->
 #显示主界面按钮
 addJDHomePageButton = (topView) ->
 	jdHomePageButton = new Layer
-		x : 75
-		y : 25
-		width : 150
-		height : 55
+		x : 60
+		y : 70
+		width : 114
+		height : 114
 	topView.addSubLayer jdHomePageButton
 	jdHomePageButton.on Events.Click, ->
 		showJDHomePageView(topView.superLayer, jdHomePageButton)
@@ -472,16 +489,75 @@ showJDHomePageView = (bottomView, clickButton) ->
 	addSearchButton(jdHomePageView)
 	addShopCardButton(jdHomePageView)
 	addJDDetailPageButton(jdHomePageView)
+	addCompareButton(jdHomePageView)
+	addWishlistButton(jdHomePageView)
+	addStreetShoppingButton(jdHomePageView)
 	return showJDHomePageView
 
-
+#街道导航Button
+addStreetShoppingButton = (topView) ->
+	streetShoppingButton = new Layer
+		x : 20
+		y : 500
+		width : 600
+		height : 140
+	topView.addSubLayer streetShoppingButton
+	streetShoppingButton.on Events.Click, ->
+		showJDStreetPageView(topView, streetShoppingButton);
+	return streetShoppingButton
+	
+#显示街道导航页面
+showJDStreetPageView = (bottomView, clickButton) ->
+	jdDetailPageView = generateScrollableFullScreenLayerImpl("images/gray_background.jpg", 
+			    "images/jingdong/street/street_girl_topbar.jpg",
+				"images/jingdong/street/street_girl_content.jpg",
+				"images/jingdong/street/street_girl_bottombar.jpg", null, 888, false)
+	changePageAnimation(bottomView, clickButton, jdDetailPageView)
+	addJDDetailHeader(bottomView, clickButton, jdDetailPageView)
+	return jdDetailPageView
+	
+# 比一比Button
+addCompareButton = (topView) ->
+	compareButton = new Layer
+		x : 20
+		y : 340
+		width : 300
+		height : 120
+	topView.addSubLayer compareButton
+	compareButton.on Events.Click, ->
+		showJDComparePageView(topView, compareButton);
+	return compareButton
+	
+# 比一比页
+showJDComparePageView = (bottomView, clickButton) ->
+	jdDetailPageView = generateScrollableFullScreenLayerImpl("images/gray_background.jpg", 
+			    "images/jingdong/compare/compare_item_topbar.jpg",
+				"images/jingdong/compare/compare_item_content.jpg",
+				null, null, 1017, false)
+	changePageAnimation(bottomView, clickButton, jdDetailPageView)
+	addJDDetailHeader(bottomView, clickButton, jdDetailPageView)
+	return jdDetailPageView
+	
+	
+#心愿单Button
+addWishlistButton = (topView) ->
+	wishButton = new Layer
+		x : 330
+		y : 340
+		width : 300
+		height : 120
+	topView.addSubLayer wishButton
+	wishButton.on Events.Click, ->
+		showWishListView(topView, wishButton)
+	return wishButton
+	
 #分类导航的Button
 addClassifyButton = (topView) ->
 	classifyButton = new Layer
-		x : 75
-		y : 100
-		width : 150
-		height : 55
+		x : 260
+		y : 70
+		width : 114
+		height : 114
 	topView.addSubLayer classifyButton
 	classifyButton.on Events.Click, ->
 		showClassifyHomePageView(topView.superLayer, classifyButton)
@@ -492,7 +568,7 @@ addClassifyButton = (topView) ->
 #显示分类主界面
 showClassifyHomePageView = (bottomView, clickButton) ->
 	classifyHomePageView = generateNormalLayer()
-	classifyHomePageView.image = "images/jingdong/detailpage/classify_page.png"
+	classifyHomePageView.image = "images/jingdong/detailpage/classify_page.jpg"
 	changePageAnimation(bottomView, clickButton, classifyHomePageView)
 	addJDDetailHeader(bottomView, clickButton, classifyHomePageView)
 	return classifyHomePageView
@@ -500,10 +576,10 @@ showClassifyHomePageView = (bottomView, clickButton) ->
 #显示心愿单的按钮
 addWishListButton = (topView) -> 
 	wishListButton = new Layer
-		x : 75
-		y : 175
-		width : 150
-		height : 55
+		x : 470
+		y : 70
+		width : 114
+		height : 114
 	topView.addSubLayer wishListButton
 	wishListButton.on Events.Click, ->
 		showWishListView(topView.superLayer, wishListButton)
@@ -547,10 +623,10 @@ showWishListFocusView = (bottomView, clickButton) ->
 #显示个人中心按钮
 addUserCenterButton = (topView) ->
 	userCenterButton = new Layer
-			x : 75
-			y : 250
-			width : 150
-			height : 55
+			x : 260
+			y : 270
+			width : 114
+			height : 114
 	topView.addSubLayer userCenterButton
 	userCenterButton.on Events.Click, ->
 		showUserCenterView(topView.superLayer, userCenterButton)
@@ -566,13 +642,27 @@ showUserCenterView = (bottomView, clickButton) ->
 	addJDDetailHeader(bottomView, clickButton, userCenterView)
 	return userCenterView
 
+#购物车按钮
+addShoppingButton = (topView) ->
+	shoppingButton = new Layer
+		x : 60
+		y : 270
+		width : 114
+		height : 114
+	topView.addSubLayer shoppingButton
+	shoppingButton.on Events.Click, ->
+		showShopCardView(topView.superLayer, shoppingButton)
+		topView.visible = false
+		
+	return shoppingButton
+
 #显示全部订单按钮
 addAllOrderButton = (topView) ->
 	allOrderButton = new Layer
-		x : 75
-		y : 325
-		width : 150
-		height : 55
+		x : 470
+		y : 270
+		width : 114
+		height : 114
 	topView.addSubLayer allOrderButton
 	allOrderButton.on Events.Click, ->
 		showAllOrderView(topView.superLayer)
