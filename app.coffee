@@ -11,13 +11,17 @@ TABBAR_HEIGHT = 98
 TOPBAR_HEIGHT = 88
 #########
 
+makeLighterLayer = (layer) ->
+# 	layer.backgroundColor = "#3188f3"
+# 	layer.opacity = 0.1
+	
 generateTabbarButton = () ->
 	buttonLayer = new Layer
 		x : 0
 		y : SCREEN_HEIGHT - TABBAR_HEIGHT
 		width : 155
 		height : 100
-# 	buttonLayer.backgroundColor = null
+	makeLighterLayer(buttonLayer)
 	return buttonLayer
 
 generateNormalLayer = () ->
@@ -326,6 +330,7 @@ addBackButton = (bottomView, clickCell, topView) ->
 		y : 0
 		width : 140
 		height : 88
+	makeLighterLayer(backButton)
 	topView.addSubLayer backButton
 	
 	backButton.on Events.Click, ->
@@ -357,7 +362,9 @@ addCenterDropListButton = (topView) ->
 		y : 0
 		width : 150
 		height : 88
+	
 	topView.addSubLayer centerDropListButton
+	makeLighterLayer(centerDropListView)
 	centerDropListView = null
 	centerDropListButton.on Events.Click, ->
 		if centerDropListView == null
@@ -391,6 +398,7 @@ addCancelCenterDropListViewButton = (topView) ->
 		y : 720
 		width : 560
 		height : 88
+	makeLighterLayer(cancelButton)
 	topView.addSubLayer cancelButton
 	cancelButton.on Events.Click, ->
 		topView.visible = false
@@ -399,22 +407,12 @@ addCancelCenterDropListViewButton = (topView) ->
 		
 # 增加购物车的按钮
 addShopCardButton = (topView) ->
-# 	shopCardButton = new Layer
-# 		x : 555
-# 		y : 0
-# 		width : 60
-# 		height : 88
-# 	topView.addSubLayer shopCardButton
-# 	shopCardButton.on Events.Click, ->
-# 		addCenterDropListButton(topView)
-# 		showShopCardView(topView, shopCardButton)
-# 	return shopCardButton
 	return null
 
 #显示购物车页面
 showShopCardView = (bottomView, clickButton) ->
 	shopCardView = generateNormalLayer()
-	shopCardView.image = "images/jingdong/detailpage/shopcard.png"
+	shopCardView.image = "images/jingdong/detailpage/shopcard.jpg"
 	changePageAnimation(bottomView, clickButton, shopCardView)
 	addBackButton(bottomView, clickButton, shopCardView)
 	addSearchButton(shopCardView)
@@ -428,7 +426,9 @@ addSearchButton = (topView) ->
 		y : 0
 		width : 60
 		height : 88
+
 	topView.addSubLayer searchButton
+	makeLighterLayer(searchButton)
 	searchButton.on Events.Click, ->
 		showSearchView(topView, searchButton)
 	return searchButton
@@ -458,6 +458,7 @@ addJDHomePageButton = (topView) ->
 		y : 70
 		width : 114
 		height : 114
+	makeLighterLayer(jdHomePageButton)
 	topView.addSubLayer jdHomePageButton
 	jdHomePageButton.on Events.Click, ->
 		showJDHomePageView(topView.superLayer, jdHomePageButton)
@@ -501,6 +502,7 @@ addStreetShoppingButton = (topView) ->
 		y : 500
 		width : 600
 		height : 140
+	makeLighterLayer(streetShoppingButton)
 	topView.addSubLayer streetShoppingButton
 	streetShoppingButton.on Events.Click, ->
 		showJDStreetPageView(topView, streetShoppingButton);
@@ -523,6 +525,7 @@ addCompareButton = (topView) ->
 		y : 340
 		width : 300
 		height : 120
+	makeLighterLayer(compareButton)
 	topView.addSubLayer compareButton
 	compareButton.on Events.Click, ->
 		showJDComparePageView(topView, compareButton);
@@ -546,6 +549,7 @@ addWishlistButton = (topView) ->
 		y : 340
 		width : 300
 		height : 120
+	makeLighterLayer(wishButton)
 	topView.addSubLayer wishButton
 	wishButton.on Events.Click, ->
 		showWishListView(topView, wishButton)
@@ -558,6 +562,7 @@ addClassifyButton = (topView) ->
 		y : 70
 		width : 114
 		height : 114
+	makeLighterLayer(classifyButton)
 	topView.addSubLayer classifyButton
 	classifyButton.on Events.Click, ->
 		showClassifyHomePageView(topView.superLayer, classifyButton)
@@ -580,6 +585,7 @@ addWishListButton = (topView) ->
 		y : 70
 		width : 114
 		height : 114
+	makeLighterLayer(wishListButton)
 	topView.addSubLayer wishListButton
 	wishListButton.on Events.Click, ->
 		showWishListView(topView.superLayer, wishListButton)
@@ -602,6 +608,7 @@ addWishListFocusButton = (topView) ->
 		y : 393
 		width : 300
 		height : 360
+	makeLighterLayer(wishListFocusButton)
 	topView.addSubLayer wishListFocusButton
 	wishListFocusButton.on Events.Click, ->
 		showWishListFocusView(topView.superLayer)
@@ -627,6 +634,7 @@ addUserCenterButton = (topView) ->
 			y : 270
 			width : 114
 			height : 114
+	makeLighterLayer(userCenterButton)
 	topView.addSubLayer userCenterButton
 	userCenterButton.on Events.Click, ->
 		showUserCenterView(topView.superLayer, userCenterButton)
@@ -649,6 +657,7 @@ addShoppingButton = (topView) ->
 		y : 270
 		width : 114
 		height : 114
+	makeLighterLayer(shoppingButton)
 	topView.addSubLayer shoppingButton
 	shoppingButton.on Events.Click, ->
 		showShopCardView(topView.superLayer, shoppingButton)
@@ -663,6 +672,7 @@ addAllOrderButton = (topView) ->
 		y : 270
 		width : 114
 		height : 114
+	makeLighterLayer(allOrderButton)
 	topView.addSubLayer allOrderButton
 	allOrderButton.on Events.Click, ->
 		showAllOrderView(topView.superLayer)
@@ -685,6 +695,7 @@ addJDDetailPageButton = (topView) ->
 		y : 660
 		width : 300
 		height : 415
+	makeLighterLayer(jdDetailButton)
 	topView.addSubLayer jdDetailButton
 	jdDetailButton.on Events.Click, ->
 		showJDDetailPageView(topView, jdDetailButton);
@@ -710,6 +721,7 @@ addBuyButton = (topView) ->
 			y : SCREEN_HEIGHT - 88
 			width : 210
 			height : 78
+	makeLighterLayer(buyButton)
 	topView.addSubLayer buyButton
 	buyButton.on Events.Click, ->
 		showProductSKUView(topView, buyButton)
@@ -731,6 +743,7 @@ addConfirmButton = (topView) ->
 		y : SCREEN_HEIGHT - 120
 		width : 350
 		height : 84
+	makeLighterLayer(confirmButton)
 	topView.addSubLayer confirmButton
 	confirmButton.on Events.Click, ->
 		showPayView(topView, confirmButton)
@@ -751,6 +764,7 @@ addAddToShopCardButton = (topView) ->
 		y : SCREEN_HEIGHT - 88
 		width : 200
 		height : 78
+	makeLighterLayer(addToShopCardButton)
 	topView.addSubLayer addToShopCardButton
 	addToShopCardButton.on Events.Click, ->
 		showShopCardView(topView, addToShopCardButton)
@@ -765,6 +779,7 @@ showFirstSnapshotView = (bottomView, clickButton) ->
 			y : SCREEN_HEIGHT - 110 - 50
 			width : 240
 			height : 50
+	makeLighterLayer(enterButton)
 	firstSnapshotView.addSubLayer enterButton
 	enterButton.on Events.Click, ->
 		showJDHomePageView(firstSnapshotView, enterButton)
@@ -783,6 +798,7 @@ addSatisfyWishButton = (topView) ->
 		y : 100
 		width : 220
 		height : 70
+	makeLighterLayer(satisfyWishButton)
 	topView.addSubLayer satisfyWishButton
 	satisfyWishButton.on Events.Click, ->
 		showSatisfyWishView(topView, satisfyWishButton)
@@ -882,6 +898,8 @@ addSpecialEventForFindFriend = () ->
 		y : thirdTab.height - 320 - TABBAR_HEIGHT - 88
 		width : thirdTab.width
 		height : 88
+	makeLighterLayer(shoppingLayer)
+	
 	thirdTab.addSubLayer shoppingLayer
 	shoppingLayer.on Events.Click, ->
 		pushJingdongHomepage(shoppingLayer)
