@@ -12,8 +12,8 @@ TOPBAR_HEIGHT = 88
 #########
 
 makeLighterLayer = (layer) ->
-# 	layer.backgroundColor = "#3188f3"
-# 	layer.opacity = 0.1
+	layer.backgroundColor = "#3188f3"
+	layer.opacity = 0.1
 	
 generateTabbarButton = () ->
 	buttonLayer = new Layer
@@ -308,6 +308,7 @@ addCancelButton = (bottomView, clickCell, topView) ->
 		y : 0
 		width : 150
 		height : 88
+	makeLighterLayer(cancelButton)
 	topView.addSubLayer cancelButton
 	
 	cancelButton.on Events.Click, ->
@@ -364,7 +365,7 @@ addCenterDropListButton = (topView) ->
 		height : 88
 	
 	topView.addSubLayer centerDropListButton
-	makeLighterLayer(centerDropListView)
+	makeLighterLayer(centerDropListButton)
 	centerDropListView = null
 	centerDropListButton.on Events.Click, ->
 		if centerDropListView == null
@@ -404,10 +405,6 @@ addCancelCenterDropListViewButton = (topView) ->
 		topView.visible = false
 		
 	return cancelButton
-		
-# 增加购物车的按钮
-addShopCardButton = (topView) ->
-	return null
 
 #显示购物车页面
 showShopCardView = (bottomView, clickButton) ->
@@ -478,6 +475,7 @@ showJDHomePageView = (bottomView, clickButton) ->
 		y : 0
 		width : 140
 		height : 88
+	makeLighterLayer(backButton)
 	jdHomePageView.addSubLayer backButton
 	backButton.on Events.Click, ->
 		changePageAnimationL2R(jdHomePageView, clickButton, thirdTab)
@@ -488,7 +486,6 @@ showJDHomePageView = (bottomView, clickButton) ->
 			
 	addCenterDropListButton(jdHomePageView)
 	addSearchButton(jdHomePageView)
-	addShopCardButton(jdHomePageView)
 	addJDDetailPageButton(jdHomePageView)
 	addCompareButton(jdHomePageView)
 	addWishlistButton(jdHomePageView)
@@ -622,7 +619,6 @@ showWishListFocusView = (bottomView, clickButton) ->
 	wishListFocusView.image = "images/jingdong/detailpage/wish_list_focus.jpg"
 
 	addBackButton(bottomView, clickButton, wishListFocusView)
-	addShopCardButton(wishListFocusView)
 	addSearchButton(wishListFocusView)
 	changePageAnimation(bottomView, clickButton, wishListFocusView)
 	return wishListFocusView
@@ -819,6 +815,7 @@ addSearchContentButton = (topView) ->
 		y : 2
 		width : 490
 		height : 88
+	makeLighterLayer(searchContentButton)
 	topView.addSubLayer searchContentButton
 	searchContentButton.on Events.Click, ->
 		topView.image = "images/jingdong/detailpage/search_content.png"
@@ -838,7 +835,6 @@ showSearchContentView = (bottomView, clickButton) ->
 addJDDetailHeader = (bottomView, clickButton, topView) ->
 	addBackButton(bottomView, clickButton, topView)
 	addCenterDropListButton(topView)
-	addShopCardButton(topView)
 	addSearchButton(topView)
 
 #右到左的动画
