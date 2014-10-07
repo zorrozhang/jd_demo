@@ -592,7 +592,7 @@ showAllOrderView = (bottomView, clickButton) ->
 addJDDetailPageButton = (topView) ->
 	jdDetailButton = new Layer
 		x : 20
-		y : 740
+		y : 660
 		width : 300
 		height : 415
 	topView.addSubLayer jdDetailButton
