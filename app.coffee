@@ -489,7 +489,7 @@ showJDHomePageView = (bottomView, clickButton) ->
 	jdHomePageView = generateScrollableFullScreenLayer("images/gray_background.jpg",
 			    "images/jingdong/homepage/homepage_topbar.png",
 				"images/jingdong/homepage/homepage_content.jpg",
-				null, null, 1529)
+				null, null, 4380)
 	changePageAnimation(bottomView, clickButton, jdHomePageView)
 	backButton = new Layer
 		x : 0
