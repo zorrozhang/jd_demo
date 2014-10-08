@@ -650,7 +650,7 @@ showJDComparePageView = (bottomView, clickButton) ->
 	jdDetailPageView = generateScrollableFullScreenLayerImpl("images/gray_background.jpg",
 			    "images/jingdong/compare/compare_item_topbar.jpg",
 				"images/jingdong/compare/compare_item_content.jpg",
-				null, null, 1017, false)
+				null, null, 1380, false)
 	changePageAnimation(bottomView, clickButton, jdDetailPageView)
 	addJDDetailHeader(bottomView, clickButton, jdDetailPageView)
 	return jdDetailPageView
