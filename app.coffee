@@ -712,7 +712,6 @@ showWishListView = (bottomView, clickButton) ->
 	wishListView.image = "images/jingdong/detailpage/wish_list.jpg"
 	changePageAnimation(bottomView, clickButton, wishListView)
 	addJDDetailHeader(bottomView, clickButton, wishListView)
-	addWishListFocusButton(wishListView)
 	return wishListView
 
 #显示关注心愿列表按钮
