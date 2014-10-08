@@ -552,7 +552,7 @@ showJDStreetPageView = (bottomView, clickButton) ->
 	return jdGirlStreetPageView
 
 	
-# 增加街道男鞋女鞋点击区域
+# 增加街道女鞋点击区域
 addGirlStreetButton = (jdGirlStreetPageView, jdBoyStreetPageView) ->
 	boyStreetButton = new Layer
 		x : 295
@@ -579,6 +579,7 @@ addGirlStreetButton = (jdGirlStreetPageView, jdBoyStreetPageView) ->
 		jdGirlStreetPageView.visible = true
 		jdGirlStreetPageView.bringToFront()
 
+# 增加街道男鞋点击区域
 addBoyStreetButton = (jdGirlStreetPageView, jdBoyStreetPageView) ->
 	boyStreetButton = new Layer
 		x : 295
@@ -617,8 +618,32 @@ addCompareButton = (topView) ->
 	topView.addSubLayer compareButton
 	compareButton.on Events.Click, ->
 		if topView.scrollY < 10
-			showJDComparePageView(topView, compareButton);
+			showJDStartComparePageView(topView, compareButton);
 	return compareButton
+
+# 发起比一比页面
+showJDStartComparePageView = (bottomView, clickButton) ->
+	jdDetailPageView = generateScrollableFullScreenLayerImpl("images/gray_background.jpg",
+			    "images/jingdong/compare/compare_start_topbar.jpg",
+				"images/jingdong/compare/compare_start_content.png",
+				null, null, 1017, false)
+	changePageAnimation(bottomView, clickButton, jdDetailPageView)
+	addJDDetailHeader(bottomView, clickButton, jdDetailPageView)
+	addVSButton(jdDetailPageView)
+	return jdDetailPageView
+
+# VS Button
+addVSButton = (topView) ->
+	vsButton = new Layer
+		x : SCREEN_WIDTH - 130
+		y : 130
+		width : 130
+		height : 120
+	makeLighterLayer(vsButton)
+	topView.addSubLayer vsButton
+	vsButton.on Events.Click, ->
+		showJDComparePageView(topView, vsButton);
+	return vsButton
 
 # 比一比页
 showJDComparePageView = (bottomView, clickButton) ->
