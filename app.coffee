@@ -9,6 +9,7 @@ SCREEN_HEIGHT = 1136 - 40
 SCREEN_WIDTH = 640
 TABBAR_HEIGHT = 98
 TOPBAR_HEIGHT = 88
+LAUNCH_WAIT_TIME = 3.5 #闪屏页加载动画时间
 #########
 
 makeLighterLayer = (layer) ->
@@ -256,14 +257,13 @@ showLaunchView = () ->
 	loadAnimation = progressBar.animate
 		properties: {width: SCREEN_WIDTH}
 		curve: 'ease-out'
-		time: 4
+		time: LAUNCH_WAIT_TIME
 
-	loadAnimation.on('stop', ->
-		showMainFrameTabView()
+	progressBar.on Events.AnimationEnd, ->
 		launchView.animate
 			properties: {opacity: 0}
 			time: 0.6
-		)
+		showMainFrameTabView()
 
 	# setTimeout((->
 	# 	showMainFrameTabView()
@@ -511,7 +511,7 @@ showJDHomePageView = (bottomView, clickButton) ->
 		if layer.name == "contentLayer"
 			contentLayer = layer
 			break
-			 
+
 	addCenterDropListButton(jdHomePageView)
 	addSearchButton(jdHomePageView)
 	addJDDetailPageButton(contentLayer)
