@@ -9,6 +9,7 @@ SCREEN_HEIGHT = 1136 - 40
 SCREEN_WIDTH = 640
 TABBAR_HEIGHT = 98
 TOPBAR_HEIGHT = 88
+LAUNCH_WAIT_TIME = 3.5 #闪屏页加载动画时间
 #########
 
 makeLighterLayer = (layer) ->
@@ -256,7 +257,7 @@ showLaunchView = () ->
 	loadAnimation = progressBar.animate
 		properties: {width: SCREEN_WIDTH}
 		curve: 'ease-out'
-		time: 1
+		time: LAUNCH_WAIT_TIME
 
 	progressBar.on Events.AnimationEnd, ->
 		launchView.animate
@@ -510,7 +511,7 @@ showJDHomePageView = (bottomView, clickButton) ->
 		if layer.name == "contentLayer"
 			contentLayer = layer
 			break
-			 
+
 	addCenterDropListButton(jdHomePageView)
 	addSearchButton(jdHomePageView)
 	addJDDetailPageButton(contentLayer)
@@ -575,10 +576,6 @@ addWishlistButton = (topView) ->
 		width : 300
 		height : 120
 	makeLighterLayer(wishButton)
-
-	topView.on Events.Scroll, ->
-		wishButton.html = topView.scrollX
-		
 	topView.addSubLayer wishButton
 	wishButton.on Events.Click, ->
 		showWishListView(topView, wishButton)
