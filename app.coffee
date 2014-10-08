@@ -256,14 +256,13 @@ showLaunchView = () ->
 	loadAnimation = progressBar.animate
 		properties: {width: SCREEN_WIDTH}
 		curve: 'ease-out'
-		time: 4
+		time: 1
 
-	loadAnimation.on('stop', ->
-		showMainFrameTabView()
+	progressBar.on Events.AnimationEnd, ->
 		launchView.animate
 			properties: {opacity: 0}
 			time: 0.6
-		)
+		showMainFrameTabView()
 
 	# setTimeout((->
 	# 	showMainFrameTabView()
@@ -576,6 +575,10 @@ addWishlistButton = (topView) ->
 		width : 300
 		height : 120
 	makeLighterLayer(wishButton)
+
+	topView.on Events.Scroll, ->
+		wishButton.html = topView.scrollX
+		
 	topView.addSubLayer wishButton
 	wishButton.on Events.Click, ->
 		showWishListView(topView, wishButton)
