@@ -535,13 +535,76 @@ addStreetShoppingButton = (topView) ->
 
 #显示街道导航页面
 showJDStreetPageView = (bottomView, clickButton) ->
-	jdDetailPageView = generateScrollableFullScreenLayerImpl("images/gray_background.jpg",
+	jdGirlStreetPageView = generateScrollableFullScreenLayerImpl("images/gray_background.jpg",
 			    "images/jingdong/street/street_girl_topbar.jpg",
 				"images/jingdong/street/street_girl_content.jpg",
 				"images/jingdong/street/street_girl_bottombar.jpg", null, 888, false)
-	changePageAnimation(bottomView, clickButton, jdDetailPageView)
-	addJDDetailHeader(bottomView, clickButton, jdDetailPageView)
-	return jdDetailPageView
+	jdBoyStreetPageView = generateScrollableFullScreenLayerImpl("images/gray_background.jpg",
+			    "images/jingdong/street/street_girl_topbar.jpg",
+				"images/jingdong/street/street_boy_content.jpg",
+				"images/jingdong/street/street_boy_bottombar.jpg", null, 888, false)
+	jdBoyStreetPageView.visible = false
+	changePageAnimation(bottomView, clickButton, jdGirlStreetPageView)
+	addJDDetailHeader(bottomView, clickButton, jdGirlStreetPageView)
+	addJDDetailHeader(bottomView, clickButton, jdBoyStreetPageView)
+	addGirlStreetButton(jdGirlStreetPageView, jdBoyStreetPageView)
+	addBoyStreetButton(jdGirlStreetPageView, jdBoyStreetPageView)
+	return jdGirlStreetPageView
+
+	
+# 增加街道男鞋女鞋点击区域
+addGirlStreetButton = (jdGirlStreetPageView, jdBoyStreetPageView) ->
+	boyStreetButton = new Layer
+		x : 295
+		y : SCREEN_HEIGHT - 95
+		width : 100
+		height : 95
+	makeLighterLayer(boyStreetButton)
+	girlStreetButton = new Layer
+		x : 155
+		y : SCREEN_HEIGHT - 95
+		width : 100
+		height : 95
+	makeLighterLayer(girlStreetButton)
+	jdGirlStreetPageView.addSubLayer boyStreetButton
+	jdGirlStreetPageView.addSubLayer girlStreetButton
+	
+	boyStreetButton.on Events.Click, ->
+		jdBoyStreetPageView.visible = true
+		jdGirlStreetPageView.visible = false
+		jdBoyStreetPageView.bringToFront()
+		
+	girlStreetButton.on Events.Click, ->
+		jdBoyStreetPageView.visible = false
+		jdGirlStreetPageView.visible = true
+		jdGirlStreetPageView.bringToFront()
+
+addBoyStreetButton = (jdGirlStreetPageView, jdBoyStreetPageView) ->
+	boyStreetButton = new Layer
+		x : 295
+		y : SCREEN_HEIGHT - 95
+		width : 100
+		height : 95
+	makeLighterLayer(boyStreetButton)
+	girlStreetButton = new Layer
+		x : 155
+		y : SCREEN_HEIGHT - 95
+		width : 100
+		height : 95
+	makeLighterLayer(girlStreetButton)
+	jdBoyStreetPageView.addSubLayer boyStreetButton
+	jdBoyStreetPageView.addSubLayer girlStreetButton
+	
+	boyStreetButton.on Events.Click, ->
+		jdBoyStreetPageView.visible = true
+		jdGirlStreetPageView.visible = false
+		jdBoyStreetPageView.bringToFront()
+		
+	girlStreetButton.on Events.Click, ->
+		jdBoyStreetPageView.visible = false
+		jdGirlStreetPageView.visible = true
+		jdGirlStreetPageView.bringToFront()
+
 
 # 比一比Button
 addCompareButton = (topView) ->
