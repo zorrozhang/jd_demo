@@ -255,13 +255,13 @@ showLaunchView = () ->
 	loadAnimation = progressBar.animate
 		properties: {width: SCREEN_WIDTH}
 		curve: 'ease-out'
-		time: 5
+		time: 4
 
 	loadAnimation.on('stop', ->
 		showMainFrameTabView()
 		launchView.animate
 			properties: {opacity: 0}
-			time: 0.4
+			time: 0.6
 		)
 
 	# setTimeout((->
