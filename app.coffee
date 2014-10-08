@@ -154,6 +154,7 @@ generateScrollableFullScreenLayerImpl = (background, topbar, content, bottom, lo
 		y : 0
 		width : SCREEN_WIDTH
 		height : 1037
+	tempLayer.name = "contentLayer"
 	tempLayer.image = background
 	tempLayer.scrollVertical = true
 	if bottom == null
@@ -505,12 +506,18 @@ showJDHomePageView = (bottomView, clickButton) ->
 		if jdHomePageView.x >= SCREEN_WIDTH
 			jdHomePageView.visible = false
 
+	contentLayer = null
+	for layer in jdHomePageView.subLayers
+		if layer.name == "contentLayer"
+			contentLayer = layer
+			break
+			 
 	addCenterDropListButton(jdHomePageView)
 	addSearchButton(jdHomePageView)
-	addJDDetailPageButton(jdHomePageView)
-	addCompareButton(jdHomePageView)
-	addWishlistButton(jdHomePageView)
-	addStreetShoppingButton(jdHomePageView)
+	addJDDetailPageButton(contentLayer)
+	addCompareButton(contentLayer)
+	addWishlistButton(contentLayer)
+	addStreetShoppingButton(contentLayer)
 	return showJDHomePageView
 
 #街道导航Button
@@ -546,7 +553,8 @@ addCompareButton = (topView) ->
 	makeLighterLayer(compareButton)
 	topView.addSubLayer compareButton
 	compareButton.on Events.Click, ->
-		showJDComparePageView(topView, compareButton);
+		if topView.scrollY < 10
+			showJDComparePageView(topView, compareButton);
 	return compareButton
 
 # 比一比页
