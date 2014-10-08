@@ -538,11 +538,11 @@ showJDStreetPageView = (bottomView, clickButton) ->
 	jdGirlStreetPageView = generateScrollableFullScreenLayerImpl("images/gray_background.jpg",
 			    "images/jingdong/street/street_girl_topbar.jpg",
 				"images/jingdong/street/street_girl_content.jpg",
-				"images/jingdong/street/street_girl_bottombar.jpg", null, 888, false)
+				"images/jingdong/street/street_girl_bottombar.jpg", null, 1980, false)
 	jdBoyStreetPageView = generateScrollableFullScreenLayerImpl("images/gray_background.jpg",
 			    "images/jingdong/street/street_girl_topbar.jpg",
 				"images/jingdong/street/street_boy_content.jpg",
-				"images/jingdong/street/street_boy_bottombar.jpg", null, 888, false)
+				"images/jingdong/street/street_boy_bottombar.jpg", null, 1980, false)
 	jdBoyStreetPageView.visible = false
 	changePageAnimation(bottomView, clickButton, jdGirlStreetPageView)
 	addJDDetailHeader(bottomView, clickButton, jdGirlStreetPageView)
