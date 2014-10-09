@@ -687,7 +687,7 @@ addClassifyButton = (topView) ->
 #显示分类主界面
 showClassifyHomePageView = (bottomView, clickButton) ->
 	classifyHomePageView = generateNormalLayer()
-	classifyHomePageView.image = "images/jingdong/detailpage/classify_page.jpg"
+	classifyHomePageView.image = "images/jingdong/detailpage/classify_page.png"
 	changePageAnimation(bottomView, clickButton, classifyHomePageView)
 	addJDDetailHeader(bottomView, clickButton, classifyHomePageView)
 	return classifyHomePageView
